@@ -1,0 +1,133 @@
+---
+title: "Server-side features in Shaiya Core (sdev)"
+description: "Overview of all server-side features installed by sdev: cross-faction play, raid 150, item synergy, roulette, skill fixes, and EP6.4 support."
+---
+
+sdev installs a comprehensive set of server-side features by patching `ps_game.exe`. These features cover everything from cross-faction social interactions to expanded raid support, custom item effects, and EP6.4 protocol compatibility. All active hooks are installed from `src/main.cpp` at startup.
+
+<AccordionGroup>
+  <Accordion title="Cross-faction and social">
+    - Cross-faction whisper, trade, and inspect enabled.
+    - Cross-faction login and world-enter behavior enabled.
+    - GM chat sent to both factions simultaneously.
+    - Summon and move behavior allowed inside the Exiel room.
+    - Union leader summon extended to affect the full raid.
+    - Party boss and sub-boss map-position broadcast via packet `0xB1C`.
+  </Accordion>
+
+  <Accordion title="Guild improvements">
+    - The original seven-officer limit removed.
+    - Guild creation and join penalty timer checks removed.
+    - Repeated GRB (Guild Ranking Battle) entry allowed.
+    - Guild creation permitted with as few as two players.
+  </Accordion>
+
+  <Accordion title="Character growth and timers">
+    - Ultimate Mode stat and skill-point growth paths applied to every character mode.
+    - Five skill points awarded per level through the patched growth branches.
+    - Stat and skill reset items do not clear potential skills when reset is disabled.
+    - Ress-leader gameplay timer shortened from 30 seconds to 5 seconds.
+    - Logout and game-over timing aligned with the client countdown.
+    - Players revived with max HP, MP, and SP.
+    - Running while stealthed permitted.
+  </Accordion>
+
+  <Accordion title="Raid 150">
+    - `CParty` expanded from 30 users to 150 users.
+    - Party-user array offsets, raid/party flags, critical-section offsets, allocation size, and loop/count comparisons all patched to match the new capacity.
+    - Expected machine-code bytes validated before raid detours are written; the patch aborts on unsupported `ps_game.exe` layouts instead of writing blind patches.
+    - Matches the client five-page raid UI, where each page represents 30 users.
+  </Accordion>
+
+  <Accordion title="Item drops, inventory, and gold">
+    - Solo gold and solo item drops sent directly to the player's inventory where appropriate.
+    - Optional gold bonus available through the direct gold path.
+    - Fortune Bag drops stacked in inventory.
+    - Helmet and mantle drops enabled, including a mantle drop fix from bag-item drop paths.
+    - Mantle merchant spawn stabilized at server startup.
+    - Infinite consumable behavior added for explicitly listed unsellable item IDs.
+    - Lapisian operation flux behavior fixed.
+  </Accordion>
+
+  <Accordion title="Item effects">
+    The following item effects are handled server-side:
+
+    | Effect(s) | Behavior |
+    |---|---|
+    | `103` | Safety charms for gem and lapisian flows |
+    | `104` | Town move scrolls; uses item `ReqVg` as the gatekeeper `NpcTypeID` on map `2` |
+    | `105` | Ability transfer cube; slot 1 = source, slot 2 = cube, slot 3 = target; `CraftName` and `Gems` move from source to target |
+    | `62` | Vanilla random recreation |
+    | `86–91` | Random STR, DEX, INT, WIS, REC, and LUC recreation |
+    | `220–222` | Random HP, MP, and SP recreation |
+    | `223–231` | Perfect STR, DEX, INT, WIS, REC, LUC, HP, MP, and SP recreation |
+    | `232–240` | Removal runes for STR, DEX, INT, WIS, REC, LUC, HP, MP, and SP |
+
+    Chaotic-square and synthesis effects are handled through configured recipe tables loaded from `ChaoticSquare.ini`.
+  </Accordion>
+
+  <Accordion title="Recreation runes">
+    - HP, MP, and SP recreation restricted to non-weapon, non-accessory armor-style items.
+    - `ReqWis` reused as the maximum single craft-stat value.
+    - MP and SP handling uses the correct `maxMana` and `maxStamina` item fields.
+    - The client accepts effects `220–240` in the blacksmith recreation window; sdev applies the actual item mutation server-side.
+  </Accordion>
+
+  <Accordion title="Lapisian and enchanting">
+    - Perfect lapisian support uses item `ReqRec` as a custom scaled success rate.
+    - Falls back to `g_LapisianEnchantSuccessRate` when `ReqRec` is zero.
+    - Safety charm behavior integrated into lapisian success and failure paths.
+    - Packet `0x116` sends server weapon and enchant step values to the client.
+    - Enchant cap configured through `ServerConfig.ini`.
+  </Accordion>
+
+  <Accordion title="Skill abilities">
+    | Ability | Behavior |
+    |---|---|
+    | `35` | EXP stones using the EP6 ability value as a multiplier source |
+    | `70` | Delayed cleanup after the skill is stopped |
+    | `87` | Quest/EXP-style multiplier behavior |
+    | Type `19` | Cooldown fixed so the server uses the real skill cooldown instead of the old fixed 500-second fallback |
+
+    Custom skill state is cleared on death, skill clear, and end-time handling.
+  </Accordion>
+
+  <Accordion title="Status, stats, and combat">
+    - Attack and equipment stats recalculated through patched equipment add, remove, and reset paths.
+    - Cloak slot and type included in recalculation so cloaks contribute to defense and resistance.
+    - Recover-add sends for HP, MP, and SP fixed for the custom status layout.
+    - Off-hand one-hand weapon recognition supported.
+    - Death-skill behavior applied through the patched and default death-skill path.
+  </Accordion>
+
+  <Accordion title="Item set synergy">
+    - Decrypted server-side `SetItem.SData` loaded at startup.
+    - Equipped item IDs tracked per character.
+    - Synergy bonuses applied for: STR, DEX, INT, WIS, REC, LUC, HP, MP, SP, melee attack, ranged attack, and magic attack.
+    - Stale synergy bonuses removed when equipment changes or the user leaves the world.
+  </Accordion>
+
+  <Accordion title="Bosses, obelisks, and world thread">
+    - Server-wide boss death and spawn notices sent to all players.
+    - `Obelisk.ini` spawn timing stabilized by removing the stock one-hour randomizer.
+    - Reward item event update checks run from the world thread every three seconds.
+  </Accordion>
+
+  <Accordion title="Quests and rewards">
+    - EP6 quest-end packet `0x903` supported.
+    - Six quest result choices supported, each with up to three item rewards.
+    - Game-log quest-end entries sent for awarded items.
+    - EXP and money added through stock server helpers.
+    - Reward item event progress tracked by account user ID.
+  </Accordion>
+
+  <Accordion title="Roulette">
+    - Roulette list packet `0x834` sends configured token and reward data to the client.
+    - Spin packet `0x835` validates configuration, token count, pending spin state, and inventory capacity before proceeding.
+    - One configured token consumed at spin start.
+    - Pending reward stored with a 4.5-second completion time.
+    - Selected reward delivered through the normal item creation path when the spin completes.
+    - Duplicate rewards from one token prevented by guarding pending spin state.
+    - Up to twenty rewards supported; chance values normalized to a 10000-point table.
+  </Accordion>
+</AccordionGroup>

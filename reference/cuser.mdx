@@ -1,0 +1,224 @@
+---
+title: "CUser structure reference"
+description: "Full memory layout of the CUser structure in Shaiya Core, including base fields, extended EP6.4 fields, static methods, and custom additions."
+---
+
+`CUser` is the central user/character object in `ps_game.exe`. Shaiya Core extends the standard `CUser` allocation from `0x62A0` to `0x62F4` to add custom runtime state fields. All offsets shown are from the base of the struct. The struct inherits from `CObjectConnection` and `UserInfo`, with the `CUser`-specific fields beginning at `0x121C`.
+
+<Note>
+Shaiya Core increases the CUser allocation size from `0x62A0` to `0x62F4`. If you use Cheat Engine scripts that access user memory, adjust them to account for the extended layout. The comment in `src/main.cpp` notes this explicitly.
+</Note>
+
+## Custom extended fields
+
+Four fields are appended at the end of `CUser` after the base allocation ends at `0x62A0`:
+
+```cpp
+// custom
+ItemQualityLv<24> itemQualityLvEx;  //0x62A0
+ItemQuality<24>   itemQualityEx;    //0x62B8
+SkillAbility70    skillAbility70;   //0x62E8
+uint32_t          multiplyQuestExpRate; //0x62F0
+```
+
+`itemQualityLvEx` and `itemQualityEx` store extended item quality data for the EP6.4 equipment slot count of 24. `skillAbility70` tracks the state of skill ability type 70, which requires delayed cleanup after the skill stops. `multiplyQuestExpRate` holds the quest EXP multiplier sourced from skill ability type 87.
+
+## SkillAbility70 struct
+
+The `SkillAbility70` struct is packed and placed at offset `0x62E8`:
+
+```cpp
+#pragma pack(push, 1)
+struct SkillAbility70 {
+    uint16_t skillId;
+    uint8_t  skillLv;
+    bool     triggered;
+    tick32_t keepTime;
+};
+#pragma pack(pop)
+```
+
+## Key user enums
+
+The following enums are defined in `CUser.h` and are used throughout the server codebase. All are `enum struct` with `int32_t` underlying type unless noted.
+
+### UserAttackType
+
+```cpp
+enum struct UserAttackType : int32_t
+{
+    None,
+    Basic,
+    Skill
+};
+```
+
+### UserHPAssistType
+
+```cpp
+enum struct UserHPAssistType : int32_t
+{
+    Sp, Mp, SpMp
+};
+```
+
+### UserLogoutType
+
+```cpp
+enum struct UserLogoutType : int32_t
+{
+    None,
+    CharacterScreen,
+    Exit
+};
+```
+
+### UserPvPStatus
+
+```cpp
+enum struct UserPvPStatus : int32_t
+{
+    None,
+    RequestSent,
+    RequestRecv,
+    Countdown,
+    Start,
+    Exchange
+};
+```
+
+### UserMovePosType
+
+`GateKeeper` and `Portal` share the same value (`1`). `TownMoveScroll` is a custom addition. Higher values use explicit hex assignments.
+
+```cpp
+enum struct UserMovePosType : int32_t
+{
+    Default,
+    GateKeeper  = 1,
+    Portal      = 1,
+    SavePoint,
+    RecallRune,
+    PartyCall,
+    PartyMove,
+    MoveWar,         // itemId 100169 (EP5)
+    TownMoveScroll,  // custom
+    MoveMapId200    = 10,
+    MoveChar        = 0xF904,
+    MoveCharZone    = 0xF905,
+    MoveParty       = 0xF90C,
+    MoveTo          = 0xFA09,
+    MoveZone        = 0xFA0A,
+    MoveMap         = 0xFA11,
+    MoveInsZone     = 0xFA12
+};
+```
+
+### UserRecoveryStatus
+
+```cpp
+enum struct UserRecoveryStatus : int32_t
+{
+    Sit,
+    Normal,
+    Combat
+};
+```
+
+### UserStatus
+
+```cpp
+enum struct UserStatus : int32_t
+{
+    None,
+    Death,
+    Combat,
+    Casting
+};
+```
+
+### UserTargetType
+
+```cpp
+enum struct UserTargetType : int32_t
+{
+    None,
+    User,
+    Mob
+};
+```
+
+### UserVehicleStatus
+
+```cpp
+enum struct UserVehicleStatus : int32_t
+{
+    None,
+    Casting,
+    Riding
+};
+```
+
+### UserWhere
+
+```cpp
+enum struct UserWhere : int32_t
+{
+    Default,
+    WorldLeave,
+    ZoneWait,
+    ZoneLeave,
+    ZoneEnter
+};
+```
+
+## Static methods
+
+`CUser` exposes a set of static methods that use register-calling-convention comments to indicate which register carries each pointer on entry. These are the methods declared in `CUser.h`:
+
+```cpp
+static void AddExpFromUser(CUser* user/*esi*/, unsigned lastTargetId, int exp, bool isQuest);
+static void CancelActionExc(CUser* user/*edi*/);
+static void ChkAddMoneyGet(CUser* user/*ecx*/, unsigned money/*edx*/);
+static void GemEquipmentAdd(CUser* user/*eax*/, int slot/*esi*/, int gem/*ecx*/);
+static void GemEquipmentRem(CUser* user/*eax*/, int slot/*esi*/, int gem/*ecx*/);
+static void GetGuildName(CUser* user/*ebx*/, char* output);
+static PartyType GetPartyType(CUser* user);
+static void InitEquipment(CUser* user/*ecx*/);
+static void InitEquipment(CUser* user/*ecx*/, bool reset);
+static void ItemBagToBag(CUser* user/*ecx*/, int srcBag, int srcSlot, int destBag, int destSlot);
+static void ItemBagToBank(CUser* user/*edx*/, int srcBag, int srcSlot, int destBag/*100*/, int destSlot/*ecx*/);
+static void ItemBankToBag(CUser* user/*edx*/, int srcBag/*100*/, int srcSlot/*ecx*/, int destBag, int destSlot);
+static void ItemBankToBank(CUser* user/*esi*/, int srcBag/*100*/, int srcSlot, int destBag/*100*/, int destSlot/*ecx*/);
+static bool ItemCreate(CUser* user/*ecx*/, ItemInfo* info, int count);
+static bool ItemDelete(CUser* user, int type, int typeId);
+static void ItemEquipmentAdd(CUser* user/*edi*/, CItem* item/*eax*/, int slot);
+static void ItemEquipmentRem(CUser* user/*edx*/, CItem* item/*ecx*/, int slot);
+static void ItemEquipmentOptionAdd(CUser* user/*eax*/, CItem* item/*esi*/);
+static void ItemEquipmentOptionRem(CUser* user/*eax*/, CItem* item/*esi*/);
+static void ItemGet(CUser* user/*ecx*/, CItem* item);
+static void ItemGetMoney(CUser* user/*edx*/, unsigned money/*ecx*/);
+static void ItemRemove(CUser* user/*ecx*/, int bag, int slot/*ebx*/);
+static void ItemUse(CUser* user, int bag, int slot, unsigned targetId, int targetType);
+static void ItemUseNSend(CUser* user, int bag, int slot, bool moveMap);
+static void LevelChange(CUser* user, int prevLv, int currLv);
+static void LevelUp(CUser* user, bool event);
+static void LevelUpStatus(CUser* user);
+static bool QuestAddItem(CUser* user, int type, int typeId/*ecx*/, int count, int* outBag, int* outSlot/*edx*/, ItemInfo* outInfo);
+static CQuest* QuestFind(CUser* user/*edi*/, int questId);
+static void QuestRemove(CUser* user/*esi*/, CQuest* quest/*eax*/, bool success);
+static void SendShape(CUser* user/*ecx*/);
+static void SendUserShape(CUser* user);
+static void SetAttack(CUser* user/*esi*/);
+static void StatResetSkill(CUser* user/*eax*/, bool event);
+static void StatResetStatus(CUser* user/*edi*/, bool event);
+```
+
+## Size assertion
+
+The header confirms the extended layout with a compile-time assertion. The commented-out original assertion (`0x62A0`) is preserved for reference:
+
+```cpp
+//static_assert(sizeof(CUser) == 0x62A0);
+static_assert(sizeof(CUser) == 0x62F4);
+```

@@ -1,133 +1,86 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
-icon: 'star'
+title: "Shaiya Core: C++ patching library for private servers"
+description: "Shaiya Core is a modular C++ patching framework that modernizes Shaiya private servers with configurable hooks, EP6.4 support, and community-driven development."
 ---
 
-## Setting up
+Shaiya Core is a C++ patching library and hook framework for Shaiya private server research, production, and preservation. It targets the four main Shaiya binaries — `ps_game.exe`, `ps_dbAgent.exe`, `ps_login.exe`, and `Game.exe` — and provides a stable, configurable, and extensible foundation for running an Episode 6.4-compatible private server.
 
-Get your documentation site up and running in minutes.
+The project is the official successor to Shaiya Essentials. It is free, open-source under the BSD 3-Clause License, and built with community contributions. Features are controlled through `.ini` configuration files rather than direct binary edits, giving you full control without opaque hardcoded changes.
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+<Note>
+  As of v0.5.1, Shaiya Core is in beta. It is suitable for development and testing but not yet recommended for public production servers. Consider remaining on Shaiya Essentials until a stable release is available.
+</Note>
 
-## Make it yours
+## Explore the documentation
 
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Introduction" icon="book-open" href="/introduction">
+    Learn what Shaiya Core is, how it's structured, and what it replaces.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Get your server and client modules running from a fresh checkout.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Building" icon="hammer" href="/building">
+    Build server and client modules with Visual Studio 2022 and MSBuild.
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="Configuration" icon="sliders" href="/configuration/server-config">
+    Configure enchant cap, level cap, roulette, battlefields, and more.
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## Modules
 
-Everything you need to create world-class documentation.
+Shaiya Core is organized into focused modules, each targeting a specific binary.
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
+<CardGroup cols={2}>
+  <Card title="Game Service (sdev)" icon="server" href="/modules/game-service">
+    Server-side hooks for ps_game.exe: packets, gameplay, items, skills, and raids.
   </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
+  <Card title="Client (sdev-client)" icon="desktop" href="/modules/client">
+    Game.exe hooks: EP6.4 UI, ImGui panel, commands, and quality-of-life patches.
   </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
+  <Card title="Login (sdev-login)" icon="lock" href="/modules/login">
+    Login service security patches for ps_login.exe.
   </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
+  <Card title="Database Agent (sdev-db)" icon="database" href="/modules/database-agent">
+    dbAgent hooks for character list and name availability packets.
   </Card>
-</Columns>
+</CardGroup>
 
-## Make your content agent ready
+## Key features
 
-Make your docs work for humans and AI agents alike.
+<CardGroup cols={2}>
+  <Card title="EP6.4 support" icon="layer-group" href="/features/ep64-support">
+    Equipment slots, shape packets, vehicle display, and protocol compatibility.
+  </Card>
+  <Card title="Raid 150" icon="users" href="/features/server-features">
+    Expand party size from 30 to 150 with matching five-page client UI.
+  </Card>
+  <Card title="Server features" icon="gear" href="/features/server-features">
+    Cross-faction play, guild improvements, item synergy, roulette, and more.
+  </Card>
+  <Card title="Client features" icon="wand-magic-sparkles" href="/features/client-features">
+    Commands, resolutions, Discord RPC, ImGui panel, and visual toggles.
+  </Card>
+</CardGroup>
 
-<Columns cols={2}>
-  <Card
-    title="Prompt component"
-    icon="robot"
-    href="/agent-ready/prompt"
-  >
-    Embed shareable AI prompts readers can copy or open in Cursor.
-  </Card>
-  <Card
-    title="Visibility"
-    icon="eye"
-    href="/agent-ready/visibility"
-  >
-    Show different content to humans and agents reading your docs.
-  </Card>
-  <Card
-    title="Contextual menu"
-    icon="bolt"
-    href="/agent-ready/contextual"
-  >
-    Give readers one-click access to Claude, ChatGPT, Cursor, and more.
-  </Card>
-  <Card
-    title="AI coding tools"
-    icon="wand-magic-sparkles"
-    href="/ai-tools/claude-code"
-  >
-    Set up Claude Code, Cursor, or Windsurf with Mintlify's skill.
-  </Card>
-</Columns>
+## Reference
 
-## Need inspiration?
+<CardGroup cols={2}>
+  <Card title="CUser structure" icon="code" href="/reference/cuser">
+    Full CUser memory layout including custom extended fields added by Core.
+  </Card>
+  <Card title="Packet reference" icon="network-wired" href="/reference/packets-server">
+    Server-side packet opcodes and their handler descriptions.
+  </Card>
+  <Card title="Common types" icon="shapes" href="/reference/common-types">
+    Enums, type aliases, and shared structures from the shaiya library.
+  </Card>
+  <Card title="Item effects" icon="flask" href="/reference/item-effects">
+    Custom item effect IDs and their server-side behavior.
+  </Card>
+</CardGroup>
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+## Community and support
+
+Shaiya Core is developed and discussed in the Core Discord community. Updated bundles, guides, and support are shared in the `Guides` section of the Discord group. Join at [discord.gg/ZUSuWQsRMB](https://discord.gg/ZUSuWQsRMB).

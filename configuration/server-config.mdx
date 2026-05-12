@@ -1,0 +1,48 @@
+---
+title: "ServerConfig.ini reference for Shaiya Core"
+description: "Configure global server limits in ServerConfig.ini, including enchant cap (1–49) and level cap (1–254). Created with defaults when missing."
+---
+
+ServerConfig.ini controls global server limits and is loaded by sdev at startup. It is created with default values if the file is missing, so you do not need to create it manually before first launch.
+
+## Default location
+
+`Data/ServerConfig.ini` relative to the `ps_game.exe` directory. The server resolves paths from the game service executable directory, then the `Data` folder, which keeps file loading independent from the process current directory.
+
+## Configuration options
+
+### EnchantCap
+
+| Property | Value |
+|----------|-------|
+| Type | integer |
+| Default | `20` |
+| Range | `1..49` |
+
+Sets the maximum enchant step players can reach. Values outside the `1..49` range are clamped before the patch is applied. At startup, sdev patches all lapisian and enchant cap comparisons throughout the binary to use this value.
+
+### LevelCap
+
+| Property | Value |
+|----------|-------|
+| Type | integer |
+| Default | `70` |
+| Range | `1..254` |
+
+Sets the maximum character level. Values outside the `1..254` range are clamped before the patch is applied. At startup, sdev patches all known server level-cap comparisons to use this value.
+
+## Example
+
+```ini
+[Server]
+EnchantCap=20
+LevelCap=70
+```
+
+<Note>
+  ServerConfig.ini is created with defaults when the file is missing — you do not need to create it manually.
+</Note>
+
+<Tip>
+  After changing `EnchantCap` or `LevelCap`, restart `ps_game.exe` for the changes to take effect. Both values are read once at startup and patched directly into the binary.
+</Tip>

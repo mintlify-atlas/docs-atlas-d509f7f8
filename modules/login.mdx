@@ -1,0 +1,24 @@
+---
+title: "Login module (sdev-login) reference"
+description: "sdev-login patches ps_login.exe to fix two known login service vulnerabilities, hardening the Shaiya private server login process."
+---
+
+`sdev-login` is the `ps_login.exe` patch module. It is delivered as a DLL and loaded into the login service process at startup. The module's sole purpose is to patch two well-known login service vulnerabilities that are present in the stock `ps_login.exe` binary distributed with Shaiya private server bundles.
+
+## Environment
+
+- Windows 10 or newer
+- Visual Studio 2022, C++23, x86 build target
+- [Microsoft Visual C++ Redistributable (x86)](https://aka.ms/vs/17/release/vc_redist.x86.exe)
+
+## What it patches
+
+`sdev-login` addresses two login service vulnerabilities. The specific vulnerability details are not documented publicly for security reasons. The patches are compiled into the module and applied automatically on load — no configuration files or manual steps are required.
+
+<Warning>
+Apply this patch to a controlled test environment and verify login service behavior before deploying to a production server.
+</Warning>
+
+## Configuration
+
+No additional configuration files are required for this module. The patches are self-contained and activate on DLL load.

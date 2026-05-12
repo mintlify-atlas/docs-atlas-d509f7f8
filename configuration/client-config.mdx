@@ -1,0 +1,125 @@
+---
+title: "CONFIG.INI reference for Shaiya Core client"
+description: "Configure Game.exe runtime behavior in CONFIG.INI: server IP, updater bypass, UI mode, visual toggles, font settings, and buff position."
+---
+
+CONFIG.INI is the client-side configuration file read by `Game.exe` on startup. It controls the login server address, startup behavior, UI mode, and visual feature toggles. Many of these values can also be changed at runtime through in-game commands, and the file is updated automatically when you do.
+
+## Full example
+
+```ini
+[ADVANCED]
+; 1 skips the updater token check and lets Game.exe launch directly.
+; 0 keeps the stock updater-required behavior.
+SKIPUPDATER=0
+
+; 1 auto-selects the only available server.
+; 0 keeps the stock server-selection screen.
+SKIPSERVERSELECTION=1
+
+; 1 skips character mode selection and forces Ultimate Mode.
+; 0 keeps the stock mode-selection screen.
+SKIPMODESELECTION=1
+
+; 0 uses data/interface.
+; 1 redirects the interface folder to data/interfep6 and disables the EP4 HUD layout package.
+UI=0
+
+; Empty or missing defaults to 127.0.0.1.
+IP=
+
+; Enables or disables the GM/admin ID view patch where supported.
+IDVIEW=OFF
+
+; Visual title rendering from cloak data.
+TITLES=ON
+
+; Visual colored-name rendering from helmet data.
+COLOUR=ON
+
+; Optional visual/performance toggles controlled by chat commands and F7.
+COSTUMES=TRUE
+PETS=TRUE
+WINGS=TRUE
+EFFECTS=TRUE
+FPS_BOOST=FALSE
+
+[FONT]
+; Written by /font. Defaults to Arial 13 normal.
+HEIGHT=13
+WEIGHT=400
+ITALIC=0
+FACENAME=Arial
+```
+
+## ADVANCED settings
+
+### SKIPUPDATER
+
+Accepts `0` or `1`. When set to `1`, injects the same command-line token normally provided by `Updater.exe`, allowing direct `Game.exe` launch without changing the normal startup state machine. Set to `0` to keep the stock updater-required behavior. Defaults to `0`.
+
+### SKIPSERVERSELECTION
+
+Accepts `0` or `1`. When set to `1`, hides the server panel and selects the only available server through the safe delayed stock path. Set to `0` to keep the stock server-selection screen.
+
+### SKIPMODESELECTION
+
+Accepts `0` or `1`. When set to `1`, bypasses the mode-selection UI and forces Ultimate Mode during character creation. Set to `0` to keep the stock mode-selection screen.
+
+### UI
+
+Accepts `0` or `1`. `UI=0` uses the standard `data/interface` folder. `UI=1` redirects stock `data/interface` references to `data/interfep6` and disables the EP4 HUD layout package so the EP6.4 layout remains coherent. The current default setup uses the custom EP4.5-style UI with `UI=0`.
+
+### IP
+
+The login server IP address. Empty or missing values default to `127.0.0.1`. This value rewrites the stock login server string at startup.
+
+### IDVIEW
+
+Accepts `ON` or `OFF`. Enables or disables the GM/admin mob and NPC ID view patch where supported. Defaults to `OFF`.
+
+### TITLES
+
+Accepts `ON` or `OFF`. Controls visual title rendering from cloak data. Can also be toggled at runtime with `/titles on` and `/titles off`. Defaults to `ON`.
+
+### COLOUR
+
+Accepts `ON` or `OFF`. Controls colored name rendering from helmet data, including rainbow color mode. Can also be toggled at runtime with `/colour on`, `/colour off`, `/color on`, and `/color off`. Defaults to `ON`.
+
+### COSTUMES, PETS, WINGS, EFFECTS
+
+Each accepts `TRUE` or `FALSE`. These are optional visual and performance toggles that control rendering of costumes, pets, wings, and player/mob effects respectively. All four are also controlled by `F7` (Performance Mode), which quickly toggles all four together with FPS boost for PvP or crowded scenes. Individual commands (`/costumes off`, `/pets off`, `/wings off`, `/effects off`) are also available. All default to `TRUE`.
+
+### FPS_BOOST
+
+Accepts `TRUE` or `FALSE`. Controls the client FPS boost path. Can also be toggled at runtime with `/fpsboost on` and `/fpsboost off`. Defaults to `FALSE`.
+
+## FONT settings
+
+Font settings are written automatically by the `/font` command, which opens the Windows font picker and persists the selected font properties. You can also edit these values directly.
+
+| Key | Description | Default |
+|-----|-------------|---------|
+| `HEIGHT` | Font height in points | `13` |
+| `WEIGHT` | Font weight (400 = normal, 700 = bold) | `400` |
+| `ITALIC` | `0` for normal, `1` for italic | `0` |
+| `FACENAME` | Font family name | `Arial` |
+
+<Note>
+  The `/font` command requires `D3DX9_43.dll` (32-bit) beside `Game.exe` or installed system-wide. All other client features work without it.
+</Note>
+
+## BUFF settings
+
+The buff row position is controlled by holding `F6` and left-clicking in-game. When you do, the client saves the current buff position to `CONFIG.INI` under the `[BUFF]` section.
+
+| Key | Description |
+|-----|-------------|
+| `LOCATION_X` | Horizontal position of the buff row |
+| `LOCATION_Y` | Vertical position of the buff row |
+
+The saved location is applied on every render. These keys are written by the game and do not need to be set manually.
+
+<Warning>
+  Keep production secrets like the real server IP out of version control. Do not commit `CONFIG.INI` files containing live server addresses.
+</Warning>

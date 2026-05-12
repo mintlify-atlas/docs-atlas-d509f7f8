@@ -1,0 +1,47 @@
+---
+title: "EP6.4 protocol and equipment support"
+description: "Shaiya Core adds full EP6.4 support: equipment slots for vehicles, pets, costumes, and wings, extended shape packets, and EP6.4 warehouse chunks."
+---
+
+Shaiya Core adds EP6.4 compatibility across both the server and client. This covers extended equipment slots, updated packet structures, vehicle and shape data, and EP6.4 warehouse handling. EP6.4 support spans both `sdev` (server) and `sdev-client`, with each module responsible for its own side of the protocol.
+
+## EP6.4 equipment slots
+
+Four new equipment slots are enabled beyond the original Shaiya set: vehicle, pet, costume, and wings. Equipment validation is rebuilt using item type and slot rules rather than the original compact checks, allowing one-hand weapon plus shield and off-hand combinations to coexist correctly alongside the new slots.
+
+Equipment initialization, movement, and clearing are all extended to the EP6.4 item-list count. Extended item quality is stored outside the original compact quality array to avoid layout conflicts with the existing equipment structures.
+
+## Shape and inspect packets
+
+The inspect packet `0x307` sends up to 17 visible equipment entries, covering the full EP6.4 visible slot range. EP6.4 user-shape packets include extended visual fields and vehicle data beyond the original shape layout. Clone-user allocation is expanded to hold the additional shape data without overflowing the original structure.
+
+## EP6.4 packet handlers (server)
+
+The following server-side packets are handled or extended for EP6.4 by sdev:
+
+| Packet | Behavior |
+|---|---|
+| `0x101` | Converts DB character list rows to the EP6.4 client structure, including cloak info and deletion state. |
+| `0x119` / DB `0x40D` | Validates character name availability and returns the availability result. |
+| `0x711` | Sends EP6.4 warehouse item units in chunks under the 2048-byte packet limit. |
+| `0xA05`, `0xA09`, `0xA0A`, `0x240A`, `0x240D` | EP6.4 exchange item units and PVP exchange compatibility. |
+| `0x230B` | Converts personal shop item lists to EP6.4 units. |
+| `0x1C01` | Maps the EP6.4 vehicle market type around unsupported stock market categories. |
+| `0x2602`, `0x2603`, `0xE06` | Item mall purchase, gift point flows, and point persistence. |
+
+## EP6.4 UI (client)
+
+`ADVANCED/UI=1` redirects all stock `data/interface` path references to `data/interfep6` at runtime. The EP4 HUD package is disabled in this mode so the EP6 layout remains coherent. Non-icon `.tga` and `.jpg` interface files should be converted to `.png`; the PNG redirect intentionally leaves icon assets alone.
+
+Vehicle packet and display support is implemented for EP6.4 shape and list packet fields and client display paths. Screenshots are saved as `.png` instead of the original `.jpg`/`.JPG`. A PNG interface redirect rewrites known `.tga`/`.jpg` UI paths to `.png` at runtime; the redirect is intentionally limited to known UI paths.
+
+## Client interface modes
+
+<Tabs>
+  <Tab title="Standard UI (UI=0)">
+    `ADVANCED/UI=0` (or a missing `UI` setting) keeps the default `data/interface` folder. The EP4 HUD package is active, providing the EP4.5-style main stats frame, bars, target bar, minimap, and button strips. The target HP viewer and battleground button render at their standard positions within the main stats frame. This is the default layout shipped with Shaiya Core.
+  </Tab>
+  <Tab title="EP6.4 UI (UI=1)">
+    `ADVANCED/UI=1` redirects `data/interface` references to `data/interfep6` and disables the EP4 HUD package. The EP6 clock format (`DD/MM/YYYY HH:MM:SS` 24-hour) remains active in both modes, but EP6-specific UI positioning applies only here. The target HP viewer is shifted upward to match the EP6 target frame, and the battleground button render position and click hitbox are shifted to match the `interfep6` main stats frame. The battleground button still reads `BattleFieldMoveInfo_Client.ini` and sends packet `0x233` as normal.
+  </Tab>
+</Tabs>

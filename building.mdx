@@ -1,0 +1,95 @@
+---
+title: "Building Shaiya Core with Visual Studio 2022"
+description: "Build the Shaiya Core server, client, login, and dbAgent modules using Visual Studio 2022 and MSBuild targeting x86 Release configuration."
+---
+
+Shaiya Core is a Windows-only project built with Visual Studio 2022 and MSBuild. Every module in the solution targets x86 (32-bit) to match the official Shaiya server and client binaries, and the codebase requires C++23 language support. All modules live inside a single solution file (`Shaiya-Core.sln`) so they share project references and build settings.
+
+## Build environment
+
+The following are required before invoking any build command:
+
+| Requirement | Notes |
+|---|---|
+| Windows 10 or newer | Required by the Visual Studio toolchain and the Windows SDK headers used in patches. |
+| Visual Studio 2022 | Any edition: Community, Professional, Enterprise, or Build Tools. The C++ workload must be installed. |
+| C++23 | Enabled per-project in the solution. Visual Studio 2022 17.x ships a conformant C++23 compiler. |
+| x86 platform target | All modules compile for 32-bit. The solution does not include 64-bit configurations. |
+| MSVC Redistributable (x86) | Required at runtime: [https://aka.ms/vs/17/release/vc_redist.x86.exe](https://aka.ms/vs/17/release/vc_redist.x86.exe) |
+| DirectX SDK (June 2010) | Required only for `sdev-client`. Restored automatically by `build-client.cmd` / `build-client.ps1`. |
+
+## Server module (sdev)
+
+`sdev` patches `ps_game.exe` with server-side hooks, packet handlers, and configuration loaders. Build it directly with MSBuild:
+
+<CodeGroup>
+
+```powershell MSBuild
+MSBuild.exe .\Shaiya-Core.sln /t:sdev /p:Configuration=Release /p:Platform=x86 /m
+```
+
+</CodeGroup>
+
+The `/m` switch enables parallel project builds. Output: `Release\sdev.dll`.
+
+## Client module (sdev-client)
+
+`sdev-client` patches `Game.exe` with client-side hooks, ImGui features, and UI patches. It requires the Microsoft DirectX SDK (June 2010), which is restored automatically by the provided wrapper scripts.
+
+<CodeGroup>
+
+```batch build-client.cmd
+.\build-client.cmd
+```
+
+```powershell build-client.ps1
+.\build-client.ps1
+```
+
+</CodeGroup>
+
+Both scripts locate `MSBuild.exe` through `vswhere`, the `PATH`, or known Visual Studio 2022 installation paths — in that order. They then invoke:
+
+```
+Shaiya-Core.sln /t:sdev-client /p:Configuration=Release /p:Platform=x86 /m
+```
+
+After a successful build, the script prints the full path, size, and timestamps of the output DLL. Output: `Release\sdev-client.dll`.
+
+The `build-client.ps1` script accepts `-Target` (`Build`, `Rebuild`, `Clean`) and `-Configuration` (`Release`, `Debug`) parameters if you need a non-default build.
+
+## Login module (sdev-login)
+
+`sdev-login` provides hooks for `ps_login.exe`. It builds as part of the full solution. To build it alone, target it by name:
+
+<CodeGroup>
+
+```powershell MSBuild
+MSBuild.exe .\Shaiya-Core.sln /t:sdev-login /p:Configuration=Release /p:Platform=x86 /m
+```
+
+</CodeGroup>
+
+## Database agent module (sdev-db)
+
+`sdev-db` provides hooks for `ps_dbAgent.exe`. Like the login module, it builds as part of the full solution or can be targeted individually:
+
+<CodeGroup>
+
+```powershell MSBuild
+MSBuild.exe .\Shaiya-Core.sln /t:sdev-db /p:Configuration=Release /p:Platform=x86 /m
+```
+
+</CodeGroup>
+
+## Build outputs
+
+<Note>
+Build outputs are excluded from version control by `.gitignore`. Always build from a **clean checkout** when preparing files for a public release, and test each output DLL against the matching server or client binary before distributing.
+</Note>
+
+Compiled DLLs land in the `Release\` directory at the repository root. Do not commit these files. Keep production secrets, server-specific configuration, and private data out of commits as well.
+
+## Solution structure
+
+`Shaiya-Core.sln` is the single entry point for all modules. It contains `sdev`, `sdev-client`, `sdev-login`, `sdev-db`, `shaiya`, `util`, `external`, and `mini-gmp` as individual projects. Building the full solution compiles every project in dependency order. Targeting a specific project (e.g., `/t:sdev`) builds only that project and its dependencies.

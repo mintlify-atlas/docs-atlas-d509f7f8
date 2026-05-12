@@ -1,0 +1,76 @@
+---
+title: "Custom item effects reference"
+description: "Reference for Shaiya Core custom item effects handled by sdev: recreation runes, safety charms, ability transfer, and chaotic square synthesis."
+---
+
+Shaiya Core implements a set of custom item effects in `sdev` that extend the standard item effect system. These effects are handled server-side by `hook::item_effect()` and provide features not present in the stock server. The full `ItemEffect` enum is defined in `shaiya/include/common/ItemEffect.h`; the entries below focus on the effects that `sdev` actively intercepts and processes.
+
+## Effect ID table
+
+| Effect ID | Enum name | Description |
+|-----------|-----------|-------------|
+| 62 | `RecreationRune` | Vanilla random recreation |
+| 86 | `StrRecreationRune` | Random STR stat recreation |
+| 87 | `DexRecreationRune` | Random DEX stat recreation |
+| 88 | `IntRecreationRune` | Random INT stat recreation |
+| 89 | `WisRecreationRune` | Random WIS stat recreation |
+| 90 | `RecRecreationRune` | Random REC stat recreation |
+| 91 | `LucRecreationRune` | Random LUC stat recreation |
+| 103 | `LapisianAddItemProtect` | Safety charm for gem/lapisian flows |
+| 104 | `TownMoveScroll` | Uses item `ReqVg` as gatekeeper `NpcTypeID` on map 2 |
+| 105 | `ItemAbilityTransfer` | Slot 1 = source, slot 2 = cube, slot 3 = target. `CraftName` and `Gems` move from source to target |
+| 220 | `HealthRecreationRune` | Random HP recreation — restricted to armor (not weapons/accessories) |
+| 221 | `ManaRecreationRune` | Random MP recreation — restricted to armor (not weapons/accessories) |
+| 222 | `StaminaRecreationRune` | Random SP recreation — restricted to armor (not weapons/accessories) |
+| 223 | `StrPerfectRecreationRune` | Sets STR craft stat to maximum |
+| 224 | `DexPerfectRecreationRune` | Sets DEX craft stat to maximum |
+| 225 | `IntPerfectRecreationRune` | Sets INT craft stat to maximum |
+| 226 | `WisPerfectRecreationRune` | Sets WIS craft stat to maximum |
+| 227 | `RecPerfectRecreationRune` | Sets REC craft stat to maximum |
+| 228 | `LucPerfectRecreationRune` | Sets LUC craft stat to maximum |
+| 229 | `HealthPerfectRecreationRune` | Sets HP craft stat to maximum — restricted to armor |
+| 230 | `ManaPerfectRecreationRune` | Sets MP craft stat to maximum — restricted to armor |
+| 231 | `StaminaPerfectRecreationRune` | Sets SP craft stat to maximum — restricted to armor |
+| 232 | `StrRecreationRemovalRune` | Removes STR craft stat |
+| 233 | `DexRecreationRemovalRune` | Removes DEX craft stat |
+| 234 | `IntRecreationRemovalRune` | Removes INT craft stat |
+| 235 | `WisRecreationRemovalRune` | Removes WIS craft stat |
+| 236 | `RecRecreationRemovalRune` | Removes REC craft stat |
+| 237 | `LucRecreationRemovalRune` | Removes LUC craft stat |
+| 238 | `HealthRecreationRemovalRune` | Removes HP craft stat |
+| 239 | `ManaRecreationRemovalRune` | Removes MP craft stat |
+| 240 | `StaminaRecreationRemovalRune` | Removes SP craft stat |
+
+## Recreation rune notes
+
+HP, MP, and SP recreation (effects 220–231) is restricted to non-weapon, non-accessory armor-style items. Weapons and accessories are rejected before the recreation logic runs.
+
+The item's `ReqWis` field is reused as the maximum allowed value for a single craft stat. The server reads this value to clamp random and perfect recreation results.
+
+MP recreation uses the `maxMana` item field; SP recreation uses the `maxStamina` item field. This distinction is important when reading or writing item data structures.
+
+The client accepts effects 220–240 in the blacksmith recreation window, allowing players to place these items in the appropriate slot. The server performs the actual craft-stat mutation; the client only gates the window placement.
+
+## Safety charms (effect 103)
+
+Safety charm behavior is integrated into both the lapisian enchant success and failure code paths. When a safety charm item is present in the relevant inventory slot, item destruction on enchant failure is suppressed.
+
+The effect corresponds to the `LapisianAddItemProtect` enum value and uses the same slot validation as standard lapisian operations. Packet `0x805` (lapisian add) carries an `itemProtect` flag in EP6 and EP6.4 variants, which the server checks in conjunction with the charm item.
+
+## Ability transfer cube (effect 105)
+
+Effect 105 (`ItemAbilityTransfer`) transfers craft identity from one item to another. The inventory bag layout the server expects is:
+
+- **Slot 1** — source item (the item whose craft data will be moved away)
+- **Slot 2** — the transfer cube itself (consumed on use)
+- **Slot 3** — target item (the item that receives the craft data)
+
+The `CraftName` and `Gems` fields are moved from the source item to the target item. The source item's craft fields are cleared after the transfer. The result is sent to the client via packet `0x811` (`GameItemAbilityTransferOutgoing`).
+
+## Chaotic square and synthesis
+
+Chaotic square and item synthesis effects are handled through configured recipe tables rather than hardcoded effect IDs. Recipes are loaded at server startup via `Configuration::LoadItemSynthesis()` from `Data/ChaoticSquare.ini`.
+
+The client opens the chaotic square window with packet `0x830`, requests a specific synthesis recipe with `0x831`, submits a synthesis attempt with `0x832`, and submits a free-form synthesis with `0x833`. The server responds with `GameItemSynthesisOutgoing` (`0x832`) or `GameItemFreeSynthesisOutgoing` (`0x833`) carrying a `Success` or `Failure` result.
+
+For configuration format and recipe examples, see [Item synthesis configuration](/configuration/item-synthesis).

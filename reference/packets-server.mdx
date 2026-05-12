@@ -1,0 +1,138 @@
+---
+title: "Server packet opcodes reference"
+description: "Reference for all server-side packet opcodes handled by sdev in Shaiya Core, organized by feature area with structure names and handler descriptions."
+---
+
+`sdev` handles a set of custom and extended packet opcodes installed by hook functions called from `Main()`. These cover EP6.4 protocol compatibility, battleground movement, roulette, quests, and more. Hook installation order follows the sequence in `src/main.cpp`; each `hook::*` function installs one or more packet interceptors. Opcodes prefixed with **DB** indicate dbAgent-side packets.
+
+## Character and account
+
+Installed by `hook::packet_character()`.
+
+| Opcode | Structure | Description |
+|--------|-----------|-------------|
+| `0x101` | `GameCharListOutgoing` | Converts DB character list rows to the EP6.4 client structure, including cloak info and deletion state |
+| `0x119` | `GameCharNameAvailableOutgoing` / `GameCharNameAvailableIncoming` | Validates character name availability and returns the availability result to the client |
+| DB `0x40D` | `DBAgentCharNameAvailableIncoming` | Carries the name-check request from the game server to the DB agent |
+
+The `0x101` handler rebuilds the character list packet in the EP6.4 layout expected by the patched client. The `0x119` / DB `0x40D` pair forms the full name-availability round-trip.
+
+## Equipment and warehouse
+
+Installed by `hook::user_equipment()` and `hook::packet_main_interface()`.
+
+| Opcode | Structure | Description |
+|--------|-----------|-------------|
+| `0x711` | `GameCharBankOutgoing` | Sends EP6.4 warehouse item units to the client in chunks that stay under the 2048-byte packet limit |
+| `0x307` | `GameGetInfoUserItemsOutgoing` | Inspect packet: sends up to 17 visible equipment entries using the EP6.4 `GetInfoItemUnit` layout |
+
+The `0x307` handler uses the EP6.4 variant (`GameGetInfoUserShapeOutgoing_EP6_4`) which carries a 17-slot equipment array, compared to the EP5 variant with 8 slots. Cross-faction inspect is enabled server-wide.
+
+## Exchange
+
+Installed by `hook::packet_exchange()`.
+
+| Opcode | Structure | Description |
+|--------|-----------|-------------|
+| `0xA05` | `GameExchangeReadyOutgoing` | EP6.4 exchange ready/cancel notification |
+| `0xA09` | `GameExchangeAddDestOutgoing_EP6_4` | EP6.4 exchange add-destination item unit, carrying `fromDate`/`toDate` fields absent in EP5 |
+| `0xA0A` | `GameExchangeConfirmOutgoing` | EP6.4 exchange confirm or cancel |
+| `0x240A` | *(PvP exchange)* | PVP exchange compatibility hook |
+| `0x240D` | `GamePvPExcAddDestOutgoing_EP6_4` | PVP exchange add-destination item unit in EP6.4 format, carrying `fromDate`/`toDate` fields |
+
+## Market and shop
+
+Installed by `hook::packet_market()` and `hook::packet_myshop()`.
+
+| Opcode | Structure | Description |
+|--------|-----------|-------------|
+| `0x230B` | `GameMyShopItemListOutgoing` | Converts personal shop item lists to EP6.4 `MyShopUnit` layout before sending to the client |
+| `0x1C01` | *(vehicle market)* | Maps the EP6.4 vehicle market type around unsupported stock market categories |
+
+## Item mall and points
+
+Installed by `hook::packet_shop()`.
+
+| Opcode | Structure | Description |
+|--------|-----------|-------------|
+| `0x2602` | `GamePointBuyOutgoing` | Item mall purchase flow; delivers purchased items as EP6.4 `PointItemUnit` entries and returns remaining point balance |
+| `0x2603` | `GamePointGiftSendOutgoing` | Gift point flow; sends gift to named character and returns sender's remaining balance |
+| DB `0xE06` | `DBAgentPointReloadIncoming` | Triggers a point reload from the DB agent to refresh the in-memory point balance |
+
+## Battleground movement
+
+Installed by `hook::packet_pc()`.
+
+| Opcode | Structure | Description |
+|--------|-----------|-------------|
+| `0x233` | `GameMovePvPZoneIncoming` | Battleground movement request: validates level, family, death/logout status, current map, and destination zone; initiates a 5-second cast before teleporting the player |
+
+Dead players, logging-out players, players already in the target map, and cases where the destination zone is missing are all rejected before the cast begins. The request does not consume an item. `MyShop` is ended and current actions are cancelled before the cast starts.
+
+## Town move scrolls
+
+Installed by `hook::packet_pc()`.
+
+| Opcode | Structure | Description |
+|--------|-----------|-------------|
+| `0x55A` | `GameTownMoveScrollIncoming` | Town move scroll with NPC gate validation; reads `ReqVg` from the item as the gatekeeper `NpcTypeID` on map 2 |
+
+## Reward items
+
+Installed by `hook::packet_reward_item()`.
+
+| Opcode | Structure | Description |
+|--------|-----------|-------------|
+| `0x407` | *(world thread check)* | Tracks reward item event progress by account user ID; sends `GameRewardItemListIndexOutgoing` (`0x1F05`) when a reward becomes available |
+| `0x1F00` | `GameRewardItemGetOutgoing` | Sends the reward result packet after the player claims their reward item |
+
+Reward event checks run every three seconds from `CWorldThread::Update`. Progress is tracked per account and persists across login sessions within the event window.
+
+## Roulette
+
+Installed by `hook::packet_shop()`.
+
+| Opcode | Structure | Description |
+|--------|-----------|-------------|
+| `0x834` | `GameRouletteListOutgoing` / `GameRouletteListIncoming` | Server sends roulette configuration (token item, reward list with types, counts, and normalized chance values) in response to a client list request |
+| `0x835` | `GameRouletteSpinOutgoing` / `GameRouletteSpinIncoming` | Handles roulette spin: validates token count, pending spin state, and inventory capacity; consumes one token; stores a pending reward with a 4.5-second completion time; delivers the reward via normal item creation when the timer expires |
+
+The roulette reward table is loaded from `Data/Roulette.ini` and chance values are normalized to a 10 000-point scale. A follow-up packet `0x836` (`GameRouletteRewardOutgoing`) is sent when the spin timer completes and the reward is delivered.
+
+## Quests
+
+Installed by `hook::packet_quest()`.
+
+| Opcode | Structure | Description |
+|--------|-----------|-------------|
+| `0x903` | `GameQuestEndOutgoing_EP6` | EP6 quest-end packet: supports up to six result choices (`resultIndex`), each with up to three item rewards (`Array<QuestItemUnit, 3>`), plus EXP and money grants |
+
+The EP5 variant of `0x903` carries only a single item reward. The EP6 variant (`GameQuestEndOutgoing_EP6`) replaces it and is the format sent by Shaiya Core.
+
+## Party and raid
+
+Installed by `hook::packet_party()`.
+
+| Opcode | Structure | Description |
+|--------|-----------|-------------|
+| `0xB1C` | `GamePartyBossMapPosOutgoing` | Broadcasts boss and sub-boss map-position data (X, Y, `UnionType`) to party members |
+
+Cross-faction party features are enabled server-wide: union leader summon affects the full raid, and `hook::raid_150()` expands `CParty` capacity from 30 to 150 users.
+
+## Shape
+
+Installed by `hook::user_shape()`.
+
+| Opcode | Structure | Description |
+|--------|-----------|-------------|
+| `0x303` | `GameGetInfoUserShapeOutgoing_EP6_4` | EP6.4 user-shape packet with extended visual fields: 17-slot equipment array, vehicle data, `CloakInfo`, guild name |
+
+The EP6.4 shape packet adds vehicle slots and expands the equipment array compared to `GameGetInfoUserShapeOutgoing_EP5`. Clone-user allocation is also extended to hold the additional shape fields.
+
+## Weapon step
+
+Installed by `hook::packet_pc()`.
+
+| Opcode | Structure | Description |
+|--------|-----------|-------------|
+| `0x116` | `GameWeaponStepOutgoing` | Sends server weapon and enchant step values (array of 21 `uint16_t`) to the client |

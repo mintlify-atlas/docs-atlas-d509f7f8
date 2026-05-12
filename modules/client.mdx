@@ -1,0 +1,165 @@
+---
+title: "Client module (sdev-client) reference"
+description: "sdev-client patches Game.exe with EP6.4 UI, client commands, ImGui panel, Discord RPC, visual toggles, and quality-of-life improvements for Shaiya Core."
+---
+
+`sdev-client` patches `Game.exe` and delivers all client-side quality-of-life features for Shaiya Core. It is injected into the game process and installs every feature from `Main()` in `src/main.cpp`. Features range from startup tweaks and Unicode chat input to the EP6.4 raid UI, Discord RPC integration, and the server-backed ImGui roulette panel.
+
+## Environment
+
+- Windows 10 or newer
+- Visual Studio 2022, C++23, x86 build target
+- Microsoft DirectX SDK (June 2010) — required at build time
+- `D3DX9_43.dll` beside `Game.exe` or installed system-wide — optional at runtime, needed only for the `/font` command (see note below)
+
+## Chat commands
+
+| Command | Effect |
+|---|---|
+| `/font` | Opens the Windows font picker and persists the selected font to `CONFIG.INI`. Requires `D3DX9_43.dll` at runtime. |
+| `/effects on` / `/effects off` | Toggles player and mob effect rendering. |
+| `/pets on` / `/pets off` | Toggles pet rendering. Also controls mob effects in the current hook. |
+| `/wings on` / `/wings off` | Toggles wing rendering. |
+| `/costumes on` / `/costumes off` | Toggles costume rendering. |
+| `/fpsboost on` / `/fpsboost off` | Toggles the client FPS boost path. |
+| `/titles on` / `/titles off` | Toggles visual item titles (rendered from cloak data) at runtime. |
+| `/colour on` / `/colour off` | Toggles visual colored names (rendered from helmet data) at runtime. |
+| `/color on` / `/color off` | Accepted alias for `/colour`. |
+
+## Feature areas
+
+<AccordionGroup>
+  <Accordion title="Startup, login, and windowing">
+    - **Updater bypass**: `ADVANCED/SKIPUPDATER=1` injects the updater command-line token, allowing direct `Game.exe` launch without changing the normal startup state machine.
+    - **Login server override**: `ADVANCED/IP=` rewrites the stock login server string. Empty or missing values keep the default `127.0.0.1`.
+    - **Login splash skip**: removes the Nexon/copyright splash and shortens startup waits while preserving required login resource initialization.
+    - **Single-server skip**: `ADVANCED/SKIPSERVERSELECTION=1` hides the server panel and selects the only available server through the safe delayed stock path.
+    - **Unicode main HWND**: upgrades the GAME window to a Unicode window and keeps the visible title as `Shaiya`, preventing the legacy title truncation issue.
+    - **UTF-8 chat input**: accepts composed Unicode/IME text, stores UTF-8 bytes in the stock textbox, fixes multibyte wrapping/rendering branches, and removes the forced byte-127 send terminator.
+    - **System message dispatch**: provides a private window message used by client code to safely post system messages back through the game UI thread.
+    - **Welcome message**: posts the existing `SysMsg` welcome entry after the client UI is ready. Message text is owned by the normal `sysmsg.txt` data.
+    - **Visual chat tokens**: draws a movable ImGui emoji button near the chat input during gameplay. The picker scans `emojiN.png` entries from `Data\Emojis` and `gifN.gif` entries from `Data\Gifs` in the data archive, then inserts plain chat tokens such as `:emoji1:` or `:gif2:` into the stock textbox. GIF picker entries use lightweight static previews; full animation loads only when a GIF is rendered in chat or floating text.
+  </Accordion>
+
+  <Accordion title="Character creation and selection">
+    - **Mode selection skip**: `ADVANCED/SKIPMODESELECTION=1` bypasses the mode-selection UI and forces Ultimate Mode during character creation.
+    - **Name gate bypass**: skips local ASCII-only name format checks, legacy blocked-substring checks, the local name-verified gate, and the UI availability request. Real validation must be enforced server/dbAgent side.
+    - **Busy-as-success fallback**: treats one legacy character-creation busy result as success for compatibility with UTF-8/special-name creation flows.
+    - **Character select adjustments**: patches select-screen texture and text positions used by the current interface pack.
+    - **Extended character allocation**: grows `CCharacter` allocation from `0x43C` to `0x444`, initializes custom members, and resets them on character reset.
+  </Accordion>
+
+  <Accordion title="Interface and assets">
+    - **PNG interface redirect**: rewrites known interface `.tga`/`.jpg` references to `.png` at runtime. Limited to known UI paths; broad icon conversion is intentionally avoided.
+    - **Custom UI folder**: `ADVANCED/UI=1` redirects stock `data/interface` references to `data/interfep6`. `UI=0` or a missing key keeps `data/interface`.
+    - **PNG screenshots**: rewrites screenshot filename templates from `.jpg`/`.JPG` to `.png`.
+    - **EP4 HUD package**: ports selected EP4 HUD pieces including main stats frame, bars, level, target bar, target buffs/debuffs, map/minimap buttons, clock, server time, map arrows, bottom button strips, option main button, and load bar. Includes 15 EXP/Bless bar hooks across three resolution variants (800, 640, 1024). Disabled when `ADVANCED/UI=1`.
+    - **EP6 clock support**: the EP4 clock uses `DD/MM/YYYY HH:MM:SS` 24-hour format. The game-clock format patch is shared by the standard and `ADVANCED/UI=1` EP6 interface.
+    - **Level-up message suppression**: forces the level-up splash render size to zero so the animation is hidden.
+    - **GM H-key HP viewer removal**: disables the vanilla GM HP viewer opened by `H`; the custom target viewer remains available.
+    - **Dungeon map visibility**: allows dungeon maps to be shown by the client.
+    - **PvP rank icon alignment**: adjusts UI image coordinates so rank icons render correctly in both interface layouts.
+  </Accordion>
+
+  <Accordion title="Raid 150 UI">
+    - Restores five raid page buttons using `RaidButton1.png` through `RaidButton5.png`.
+    - Redirects party/raid indexing and rendering to the currently selected page, giving access to 150 users as five pages of 30.
+    - Keeps extra raid labels white for readability.
+    - Captures mouse messages over raid page buttons so clicks do not pass through to the world movement handler.
+    - Clears the DirectInput left-button state when a raid button is consumed, preventing accidental movement behind the UI.
+  </Accordion>
+
+  <Accordion title="Battleground button">
+    - Draws `main_stats_pvp_button.png` inside the main stats UI without rewriting the full `CStatusMiniBar` layout.
+    - When `ADVANCED/UI=1`, the render position and click hitbox shift upward to match the `interfep6` stats frame.
+    - Reads `BattleFieldMoveInfo_Client.ini` from the client root or `Data` folder to display the correct battlefield name for the player level.
+    - Sends packet `0x233` only after the click starts and ends inside the button, avoiding accidental activation during window maximize/minimize.
+    - Shows a native confirmation dialog before sending the move request.
+  </Accordion>
+
+  <Accordion title="Target, names, titles, and text">
+    - **Target HP viewer**: draws current/max HP inside the native target frame for monsters and users, using the configured game font. Position shifts upward when `ADVANCED/UI=1`.
+    - **Item titles**: renders visual titles from cloak data. Toggled by `TITLES` in `CONFIG.INI` or `/titles` at runtime.
+    - **Name colors**: renders colored names from helmet data, including rainbow color mode. Toggled by `COLOUR` in `CONFIG.INI` or `/colour` at runtime.
+    - **Font picker**: `/font` updates the GDI font and all known D3DX camera font slots so labels, counters, and chat-adjacent overlays stay consistent.
+    - **Chat balloon height**: increases chat balloon height from `1.5` to `1.75` for better title/name layouts.
+    - **Visual toggles**: command hooks hide player effects, mob effects, costumes, pets, wings, and related visual objects.
+  </Accordion>
+
+  <Accordion title="Items, equipment, and packets">
+    - **Custom recreation runes in blacksmith**: allows item effects `220..240` to be placed in the NPC recreation window. Server behavior is implemented in `sdev`.
+    - **Buy/sell quantity limit**: raises the client-side quantity cap from `10` to `255`.
+    - **Disguise removal fix**: stabilizes the `0x303` packet handler path.
+    - **Appearance/sex change fix**: stabilizes the `0x226` packet handler path.
+    - **System message 509 support**: handles the `0x229` message path.
+    - **Javelin attack fix**: adjusts the `0x502` handler stack/argument layout.
+    - **Item icon quantities**: draws inventory and quickslot item counts, skipping lapis/firework-style items that should not show counts.
+    - **Two-hand/off-hand logic**: fixes `CPlayerData::IsTwoHandWeapon` behavior so custom off-hand support coexists with one-hand weapons.
+    - **Weapon step display**: patches the client weapon-step path used by lapisian/enchant display.
+    - **Vehicle packet/display support**: supports vehicle-related EP6.4 shape/list packet fields and client display paths where implemented.
+  </Accordion>
+
+  <Accordion title="Quick slots and input">
+    - Adds the third quick-slot bar allocation, free, save behavior, and routes item, skill, and basic-action movement between quick-slot bags.
+    - Patches quick-slot plus buttons and interaction paths so the extended bars can be opened and used.
+    - Removes selected client-side quick-slot delays: skill delay, basic action delay, and the extra +1000 ms delay gate. The revolver delay patch is intentionally left disabled for release stability.
+    - Holding left click while assigning status points applies ×10 when enough points are available; otherwise falls back to +1.
+  </Accordion>
+
+  <Accordion title="Buffs and movement">
+    - **Movable buff row**: hold `F6` plus left click to save the current buff position to `CONFIG.INI` under `[BUFF] LOCATION_X/LOCATION_Y`.
+    - **Persistent buff layout**: detours buff X/Y instructions so the saved location is used on every render.
+    - **Buff spacing/count**: adjusts row spacing and count per row to match the current interface.
+    - **Fast transition**: shortens selected transition waits to 100 ms.
+  </Accordion>
+
+  <Accordion title="Visual timers and flow">
+    - **Ress leader timer**: aligns the client popup countdown with the server-side 5-second timer.
+    - **Logout/game-over timer**: aligns the visible logout countdown with the shortened server logout delay.
+    - **Subaction sysmsg cooldown**: rate-limits sysmsgs `5228..5237` to one visible message every 20 seconds per player name.
+    - **Experience view fix**: prevents the client from displaying experience values multiplied by ten and ignores locale-specific EXP multiplication where applicable.
+  </Accordion>
+
+  <Accordion title="Resolution and graphics">
+    The following non-standard resolutions are added to the options screen:
+
+    - `1366×768`
+    - `1400×900`
+    - `2560×1080`
+    - `2560×1440`
+    - `3440×1440`
+    - `3840×1080`
+    - `3840×2160`
+
+    The option-screen resolution rendering, selection, saving, and apply behavior is expanded to support the larger table. Stock large-layout positioning branches are reused so UI placement remains stable at wider resolutions. Gamma, distance, and float option values are cached to prevent the expanded resolution table from corrupting option sliders.
+  </Accordion>
+
+  <Accordion title="Discord and ImGui panel">
+    - Discord RPC initializes with the static application ID and message defined in `src/discord.cpp`.
+    - `F8` toggles the ImGui roulette panel. The panel requests the server reward list, displays real item names and icons from the configured server rewards, and sends the server roulette roll packet. Hovering a reward shows the item name and description tooltip.
+    - `F9` toggles the GM debug panel (requires `IsAdmin`). Shows a rolling log of recent chat types. Panel code lives in `src/debug_panel.cpp`.
+    - `F7` is a realtime/performance toggle — not part of the panel system. It quickly switches wings, pets, effects, and FPS boost for PvP or crowded scenes.
+  </Accordion>
+</AccordionGroup>
+
+## Keyboard shortcuts
+
+| Key | Action |
+|---|---|
+| `F6` | Hold `F6` and left click to save the current buff bar position to `CONFIG.INI`. |
+| `F7` | Performance mode toggle: switches wings, pets, effects, and FPS boost simultaneously. |
+| `F8` | Toggles the ImGui roulette panel (visible to all players). |
+| `F9` | Toggles the GM debug panel (requires `IsAdmin`). |
+
+## Asset notes
+
+- Interface assets used by the PNG redirect must exist in the `Data/interface` tree.
+- Custom interface assets for `ADVANCED/UI=1` must exist in `Data/interfep6`. Non-icon `.tga`/`.jpg` files should be converted to `.png`; the broad PNG redirect intentionally leaves icon assets alone.
+- Raid button assets are expected as PNG: `RaidButton1.png` through `RaidButton5.png`.
+- The battleground button requires `main_stats_pvp_button.png`.
+- Visual chat token assets are read from the internal data archive: `Data/Emojis/emojiN.png` and `Data/Gifs/gifN.gif`.
+- Roulette item icons use embedded DDS atlas resources in `resources/item_icons_atlas`. DDS textures (DXT1/DXT3/DXT5) are decoded by a built-in parser; PNG textures are decoded by `stb_image`. Neither path requires the D3DX runtime.
+
+<Note>
+`D3DX9_43.dll` is optional. It is only required when using the `/font` command (the D3DX font picker). All other texture loading — PNG, DDS — uses built-in decoders and does not depend on the D3DX runtime.
+</Note>

@@ -1,81 +1,79 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
-icon: 'rocket'
+title: "Get started with Shaiya Core"
+description: "Set up Shaiya Core server and client modules from a clean checkout in four steps, including prerequisites, build commands, and runtime file setup."
 ---
 
-## Get started in three steps
+This guide walks you through building both the server module (`sdev`) and the client module (`sdev-client`) from a clean checkout, then placing the runtime configuration files that `sdev` needs to start correctly. By the end you will have compiled DLLs ready to load alongside the official Shaiya server and client binaries.
 
-Get your documentation site running locally and make your first customization.
+## Prerequisites
 
-### Step 1: Set up your local environment
+Before building, make sure the following are installed and available on your `PATH`:
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+- **Windows 10** or newer
+- **Visual Studio 2022** with the Desktop development with C++ workload
+- **C++23** support (included with Visual Studio 2022 17.x)
+- **x86 build target** — all modules compile for 32-bit
+- **Microsoft Visual C++ Redistributable (x86):** [https://aka.ms/vs/17/release/vc_redist.x86.exe](https://aka.ms/vs/17/release/vc_redist.x86.exe)
+- **Microsoft DirectX SDK (June 2010)** — required for the client module only
 
-### Step 2: Deploy your changes
+## Steps
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+<Steps>
+  <Step title="Clone or download the repository">
+    Get the source from the Shaiya-Core GitHub repository. Use a clean checkout for any build intended as a public release, because build outputs are excluded from version control and should not be mixed with working-directory changes.
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    ```bash
+    git clone https://github.com/Spelunkern/Shaiya-Core.git
+    cd Shaiya-Core
+    ```
+  </Step>
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+  <Step title="Build the server module">
+    Run MSBuild targeting the `sdev` project in Release|x86 configuration. This produces `sdev.dll`, which is loaded into `ps_game.exe`.
 
-### Step 3: Go live
+    ```powershell
+    MSBuild.exe .\Shaiya-Core.sln /t:sdev /p:Configuration=Release /p:Platform=x86 /m
+    ```
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    The `/m` flag enables parallel builds. The output is written to `Release\sdev.dll` in the repository root.
+  </Step>
 
-## Next steps
+  <Step title="Build the client module">
+    Use the provided wrapper script to build `sdev-client`. The script resolves MSBuild automatically through `vswhere` or known install paths, restores the DirectX SDK package dependency, and builds `sdev-client` as Release|x86.
 
-Now that you have your docs running, explore these key features:
+    ```powershell
+    .\build-client.cmd
+    ```
 
-<CardGroup cols={2}>
+    You can also use the PowerShell equivalent:
 
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
+    ```powershell
+    .\build-client.ps1
+    ```
 
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
+    Both scripts default to `Release` configuration and the `Build` target. The output is `Release\sdev-client.dll`.
+  </Step>
 
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
+  <Step title="Place runtime files">
+    `sdev` resolves paths from the game service executable directory and then the `Data/` subfolder. Create a `Data/` folder alongside `ps_game.exe` and place the following files inside it before starting the server:
 
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
+    | File | Purpose |
+    |---|---|
+    | `Data/ServerConfig.ini` | Global limits: `LevelCap` and `EnchantCap`. **Created with defaults when missing.** |
+    | `Data/BattleFieldMoveInfo.ini` | Battleground level ranges and per-family destination coordinates. |
+    | `Data/SetItem.SData` | Decrypted server-side item set synergy data. |
+    | `Data/ChaoticSquare.ini` | Item synthesis and chaotic square recipes. |
+    | `Data/RewardItem.ini` | Timed account reward item event list. |
+    | `Data/Roulette.ini` | Roulette token ID and reward table. |
 
-</CardGroup>
+    `ServerConfig.ini` is the only file that is auto-created with defaults on first launch. All other files must be provided before the features that depend on them are active.
+  </Step>
+</Steps>
+
+<Tip>
+Build outputs (`Release/`) are excluded by `.gitignore`. Always build from a clean checkout when preparing files for a public release, and test the outputs against the matching `ps_game.exe` and `Game.exe` binaries before distributing.
+</Tip>
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+Each module has its own README with feature details, configuration examples, and compatibility notes. Read `sdev/README.md` before making server-side changes and `sdev-client/README.md` before modifying client behavior.
 </Note>

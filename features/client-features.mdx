@@ -1,0 +1,86 @@
+---
+title: "Client-side features in Shaiya Core (sdev-client)"
+description: "Overview of all client-side features in sdev-client: commands, ImGui panel, Discord RPC, UI patches, resolution support, and visual toggles."
+---
+
+sdev-client patches `Game.exe` with a broad set of quality-of-life improvements, EP6.4 UI support, and extended capabilities. All features are installed from `Main()` in `src/main.cpp`. Runtime behavior is controlled through `CONFIG.INI` under the `[ADVANCED]` section; most visual toggles can also be changed live through chat commands.
+
+## Chat commands
+
+| Command | Effect |
+|---|---|
+| `/font` | Opens the Windows font picker and persists the selected font to `CONFIG.INI`. Requires `D3DX9_43.dll` beside `Game.exe` or installed system-wide. |
+| `/effects on` / `/effects off` | Toggles player and mob effect rendering. |
+| `/pets on` / `/pets off` | Toggles pet rendering. Also controls mob effects in the current hook. |
+| `/wings on` / `/wings off` | Toggles wing rendering. |
+| `/costumes on` / `/costumes off` | Toggles costume rendering. |
+| `/fpsboost on` / `/fpsboost off` | Toggles the client FPS boost path. |
+| `/titles on` / `/titles off` | Toggles visual item titles at runtime. |
+| `/colour on` / `/colour off` | Toggles colored name rendering. `/color` is an accepted alias. |
+
+## Keyboard shortcuts
+
+| Key | Action |
+|---|---|
+| `F6` + left click | Saves the current buff bar position to `CONFIG.INI` under `[BUFF] LOCATION_X/LOCATION_Y`. |
+| `F7` | Performance mode toggle: quickly enables/disables wings, pets, effects, and FPS boost. |
+| `F8` | Toggles the ImGui roulette panel. |
+| `F9` | Toggles the GM debug panel (requires `IsAdmin`). |
+
+## ImGui and Discord
+
+`F8` opens the roulette panel, which is available to all players. The panel requests the server reward list via packet `0x834`, displays real item names and icons from the configured server rewards, and sends the spin packet `0x835` when the player rolls. Hovering a reward on the wheel shows an item name and description tooltip. Roulette item icons are drawn from embedded DDS atlas resources; neither DXT decoding nor PNG loading requires the D3DX runtime.
+
+Discord RPC initializes with the static application ID and message defined in `src/discord.cpp`. No user interaction is required.
+
+`F9` opens the GM debug panel (requires `IsAdmin`). The panel shows a rolling log of recent chat types to help identify upper-bar exclusions. Panel code lives in `src/debug_panel.cpp`.
+
+## Resolution support
+
+The following resolutions are added beyond the stock Shaiya list:
+
+- 1366×768
+- 1400×900
+- 2560×1080
+- 2560×1440
+- 3440×1440
+- 3840×1080
+- 3840×2160
+
+Option-screen resolution rendering, selection, saving, and apply behavior are all expanded to handle the extended table. Stock large-layout positioning branches are reused so UI placement stays stable at wider resolutions. Gamma, distance, and float option values are cached to prevent the expanded resolution table from corrupting option sliders.
+
+## Visual features
+
+**Emoji and GIF picker**
+
+A movable ImGui button is drawn near the chat input during gameplay. The picker scans `Data/Emojis/emojiN.png` and `Data/Gifs/gifN.gif` entries from the internal data archive (`data.sah/saf`) and inserts plain chat tokens such as `:emoji1:` or `:gif2:` into the stock textbox through the game UI thread. Separate ON/OFF toggles exist for emoji and GIF families; disabled families are hidden from native text without drawing an overlay. GIF picker entries use static previews with a bounded resident cache; full animation loads only when a GIF is rendered in chat or floating text. The server receives and forwards plain text; emoji rendering is client-only.
+
+**Item titles**
+
+Visual titles rendered from cloak data. Controlled by the `TITLES` setting in `CONFIG.INI` or the `/titles` command.
+
+**Name colors**
+
+Colored player names rendered from helmet data, including a rainbow color mode. Controlled by the `COLOUR` setting in `CONFIG.INI` or the `/colour` command.
+
+**Target HP viewer**
+
+Draws current and maximum HP inside the native target frame for monsters and users, using the configured game font. Position shifts upward when `ADVANCED/UI=1` to match the EP6 target frame.
+
+**Chat balloon height**
+
+Chat balloon height increased from `1.5` to `1.75` to accommodate title and name overlays without clipping.
+
+## EP4 HUD package
+
+The EP4 HUD package ports selected HUD pieces from the EP4 interface into the current client: main stats frame, bars, and level indicator; target bar, target buffs, and debuffs; map and minimap buttons, background, clock, and server time; map arrows; bottom button strips; option main button; and load bar. Fifteen EXP and Bless bar hooks cover position, length, width, text, and glow across three resolution variants (800, 640, and 1024) to fit bars inside the EP4 ornamental frame. Inventory and stock EXP/Bless bars are intentionally not replaced.
+
+This package is disabled when `ADVANCED/UI=1` so the `interfep6` layout remains coherent.
+
+## Quick slots
+
+A third quick-slot bar is added with full allocation, free, and save behavior. Item, skill, and basic-action movement between quick-slot bags is routed through the extended bars. The plus buttons and all interaction paths are patched so the extra bars can be opened and used normally.
+
+Selected client-side quick-slot delays are removed: the skill delay, basic action delay, and the extra `+1000ms` delay gate. The revolver delay patch is intentionally left disabled in code for release stability.
+
+Holding left click while assigning status points applies `×10` when enough points are available; otherwise it falls back to `+1`.

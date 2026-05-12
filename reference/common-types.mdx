@@ -1,0 +1,633 @@
+---
+title: "Common types and enums reference"
+description: "Reference for all enums, type aliases, and shared structures in the shaiya library: Country, Family, Grow, Job, Sex, ItemType, UserTypes, and more."
+---
+
+The shaiya library provides common type definitions, enums, and structures shared across all Shaiya Core modules. These types live in `shaiya/include/common/` and cover game concepts like character class, faction, growth mode, item attributes, and packet-level bag identifiers. All enum values shown are taken directly from the header sources.
+
+## Attribute.h
+
+Elemental attributes used for attack and defense calculations. The type is `uint8_t`.
+
+```cpp
+enum struct Attribute : uint8_t
+{
+    None,
+    Fire1,
+    Water1,
+    Earth1,
+    Wind1,
+    Fire2,
+    Water2,
+    Earth2,
+    Wind2
+};
+```
+
+The two tiers (`Fire1`/`Fire2`, etc.) correspond to the two lapisian elemental grades available in the game.
+
+## Bag.h
+
+Named constants for special bag identifiers used in inventory and warehouse routing. The enum uses `uint8_t` and also defines comparison operators against `int` for convenience.
+
+```cpp
+enum struct Bag : uint8_t
+{
+    Warehouse    = 100,
+    Bank         = 200,
+    Unknown      = 250,
+    GuildWarehouse = 255,
+    Skill        = 100,
+    BasicAction  = 101
+};
+```
+
+`Warehouse` and `Skill` share the value `100`; the correct interpretation depends on the context (item vs. skill routing). `Bank` refers to the personal bank/deposit box.
+
+## Country.h
+
+`Country` describes the faction alignment of mobs, NPCs, and users. `Faction` is a more granular breakdown of the same concept, covering individual races.
+
+```cpp
+// mobs, npcs, users
+enum struct Country : uint8_t
+{
+    Light,
+    Fury,
+    Neutral
+};
+
+enum struct Faction : uint8_t
+{
+    Human,
+    Elf,
+    Light,
+    Deatheater,
+    Vail,
+    Fury,
+    Neutral
+};
+```
+
+## CraftName.h
+
+`CraftName` is a type alias for a fixed-length character array used to store an item's craft (composition) name:
+
+```cpp
+using CraftName = std::array<char, 21>;
+```
+
+It appears in item packet structures and in the item ability transfer effect to identify which craft data moves between source and target items.
+
+## Family.h
+
+`Family` identifies the playable race of a character. The type is `uint8_t`.
+
+```cpp
+enum struct Family : uint8_t
+{
+    Human,
+    Elf,
+    Deatheater,
+    Vail
+};
+```
+
+`Human` and `Elf` belong to the Light faction. `Deatheater` and `Vail` belong to the Fury faction. `BattleFieldMoveInfo.ini` maps one destination coordinate per family for battleground movement.
+
+## Grow.h
+
+`Grow` is the character growth mode selected at creation. The type is `uint8_t`.
+
+```cpp
+enum struct Grow : uint8_t
+{
+    Easy,
+    Normal,
+    Hard,
+    Ultimate
+};
+```
+
+Shaiya Core forces Ultimate Mode stat and skill-point growth paths for every mode via patched growth branches.
+
+## ItemSlot.h
+
+`ItemSlot` holds named slot indices for the equipment array. `ItemSlotCount` is the total number of equipment slots in the EP6.4 layout.
+
+```cpp
+constexpr int ItemSlotCount = 24;
+
+struct ItemSlot
+{
+    enum
+    {
+        Helmet,
+        UpperArmor,
+        LowerArmor,
+        Gloves,
+        Boots,
+        Weapon,
+        Shield,
+        Cloak,
+        Necklace,
+        Ring1,
+        Ring2,
+        Bracelet1,
+        Bracelet2,
+        Vehicle,
+        Pet,
+        Costume,
+        Wings
+    };
+};
+```
+
+Slots `Vehicle` through `Wings` are the EP6.4 additions enabled by Shaiya Core's equipment hooks.
+
+## ItemType.h
+
+`ItemType` enumerates every item category recognized by the server. The type is `uint8_t`. Comparison operators against `int` are also provided.
+
+```cpp
+enum struct ItemType : uint8_t
+{
+    OneHandedSword = 1,
+    TwoHandedSword,
+    OneHandedAxe,
+    TwoHandedAxe,
+    DualWeapon,
+    Spear,
+    OneHandedBlunt,
+    TwoHandedBlunt,
+    ReverseDagger,
+    Dagger,
+    Javelin,
+    Staff,
+    Bow,
+    Crossbow,
+    Knuckles,
+    LightHelmet,
+    LightUpperArmor,
+    LightLowerArmor,
+    LightShield,
+    LightGloves,
+    LightBoots,
+    Ring,
+    Necklace,
+    LightCloak,
+    Consumable25,
+    Gold,
+    Quest27,
+    Quest28,
+    Quest29,
+    Lapis,
+    FuryHelmet,
+    FuryUpperArmor,
+    FuryLowerArmor,
+    FuryShield,
+    FuryGloves,
+    FuryBoots,
+    Ring2,
+    Consumable38,
+    FuryCloak,
+    Bracelet,
+    Consumable41,
+    Vehicle,
+    Etin,
+    Consumable44,
+    OneHandedSword2,
+    TwoHandedSword2,
+    OneHandedAxe2,
+    TwoHandedAxe2,
+    DualWeapon2,
+    DualWeapon3,
+    Spear2,
+    Spear3,
+    OneHandedBlunt2,
+    OneHandedBlunt3,
+    TwoHandedBlunt2,
+    TwoHandedBlunt3,
+    ReverseDagger2,
+    Dagger2,
+    Javelin2,
+    Staff2,
+    Staff3,
+    Bow2,
+    Bow3,
+    Crossbow2,
+    Knuckles2,
+    LightHelmet2,
+    LightUpperArmor2,
+    LightLowerArmor2,
+    LightShield2,
+    LightGloves2,
+    LightBoots2,
+    LightHelmet3,
+    LightUpperArmor3,
+    LightLowerArmor3,
+    LightShield3,
+    LightGloves3,
+    LightBoots3,
+    Consumable78,
+    Consumable79,
+    Consumable80,
+    FuryHelmet2,
+    FuryUpperArmor2,
+    FuryLowerArmor2,
+    FuryShield2,
+    FuryGloves2,
+    FuryBoots2,
+    FuryHelmet3,
+    FuryUpperArmor3,
+    FuryLowerArmor3,
+    FuryShield3,
+    FuryGloves3,
+    FuryBoots3,
+    Unknown93,
+    GoldBar,
+    Lapisian,
+    Necklace2,
+    Bracelet2,
+    Lapis98,
+    Quest99,
+    Other100,
+    Other101,
+    Other102,
+    Other103,
+    Pet      = 120,
+    Wings,
+    Costume  = 150
+};
+```
+
+## Job.h
+
+`Job` is the character class within a given `Family`. The type is `uint8_t`.
+
+```cpp
+enum struct Job : uint8_t
+{
+    Fighter,
+    Defender,
+    Ranger,
+    Archer,
+    Mage,
+    Priest
+};
+```
+
+## MakeType.h
+
+`MakeType` records the origin of an item. Values are single ASCII characters (`char`).
+
+```cpp
+enum struct MakeType : char
+{
+    Billing       = 'B',
+    MobDrop       = 'D',
+    G             = 'G',
+    QuestResult   = 'Q',
+    S             = 'S',
+    Exchange      = 'T',
+    UserDrop      = 'U',
+    V             = 'V',
+    CashShop      = 'X'
+};
+```
+
+## NpcTypes.h
+
+Three enums cover NPC shop categories, faction alignment, and NPC functional role.
+
+```cpp
+// Credit: Matias Ramirez (Parsec)
+enum struct NpcShopType : uint8_t
+{
+    GenericMerchant,
+    WeaponMerchant,
+    ProtectionMerchant,
+    AccessoryMerchant,
+    LiquidMedicineMerchant,
+    ProfessionalTrader,
+    RidingMerchant,
+    MantleMerchant,
+    BadgeMerchant,
+    BankTeller,
+    GoldBarMerchant,
+    ProfessionalBlacksmith1 = 15,
+    ProfessionalBlacksmith2,
+    Alchemist               = 20,
+    EtinManager             = 100,
+    EtinMerchant,
+    AuctionBoard            = 117
+};
+
+enum struct NpcTeam : int32_t
+{
+    Light,
+    Fury,
+    Neutral
+};
+
+enum struct NpcType : uint8_t
+{
+    Merchant = 1,
+    GateKeeper,
+    Blacksmith,
+    VetManager,
+    GamblingHouse,
+    Warehouse,
+    Normal,
+    Guard,
+    Animal,
+    Apprentice,
+    GuildMaster,
+    Dead,
+    SkillReset
+};
+```
+
+The `NpcType::GateKeeper` value is used by town move scroll effect 104 (`TownMoveScroll`), which reads the item's `ReqVg` field as the gatekeeper `NpcTypeID` on map 2.
+
+## PartyTypes.h
+
+Three enums govern party loot distribution, party role, and raid/union role.
+
+```cpp
+enum struct DivType : int32_t
+{
+    Group = 1,
+    Random,
+    Unknown,
+    Master
+};
+
+enum struct PartyType : uint8_t
+{
+    None,
+    User,
+    Boss
+};
+
+enum struct UnionType : int32_t
+{
+    Default = -1,
+    Boss,
+    SubBoss,
+    User
+};
+```
+
+`UnionType` is used in the party boss map-position broadcast packet `0xB1C`.
+
+## Sex.h
+
+```cpp
+enum struct Sex : uint8_t
+{
+    Male,
+    Female
+};
+```
+
+## SkillTypes.h
+
+Four types cover skill ability modifiers, charm buffs, status ailments, and targeting modes.
+
+### SkillAbilityType
+
+```cpp
+enum struct SkillAbilityType : uint8_t
+{
+    MaxHealth = 1,
+    MaxMana,
+    MaxStamina,
+    AbilityStrength,
+    AbilityReaction,
+    AbilityIntelligence,
+    AbilityWisdom,
+    AbilityDexterity,
+    AbilityLuck,
+    AddHpRecovery,
+    AddSpRecovery,
+    AddMpRecovery,
+    DecreaseSpCostPercentage,
+    DecreaseMpCostPercentage,
+    AbilityAttackRange,
+    AbilityAttackSpeed,
+    AbilityMoveSpeed,
+    AbilityCriticalHitRate,
+    DecreaseSkillResetTime,
+    AbilityHitRate,
+    AbilityRangedHitRate,
+    AbilityMagicHitRate,
+    AbilityAttackPower,
+    AbilityRangedAttackPower,
+    AbilityMagicPower,
+    AbilityAddDefense,
+    AbilityAddRangedDefense,
+    AbilityAddMagicDefense,
+    AbilityEvasionRate,
+    AbilityRangedEvasionRate,
+    AbilityMagicEvasionRate,
+    AttackBlinded,
+    RangedAttackBlinded,
+    Silenced,
+    MultiplyExp,
+    EternalEndurance,
+    PreventItemDrop,
+    PreventExpLoss,
+    RecallWarehouse,
+    WhiteTigerCharm,
+    BlueDragonCharm,
+    RedPhoenixCharm,
+    DoubleWarehouse,
+    IncreaseGoldDrop,
+    PreventEquipmentDrop,
+    ContinuousResurrection,
+    BattlefieldRune,
+    AbilityAbsorption,
+    GoddessCurse,
+    EnableEnterDungeon,
+    DisableEnterDungeon,
+    VitalityStrTraining,
+    VitalityRecTraining,
+    VitalityIntTraining,
+    VitalityWisTraining,
+    VitalityDexTraining,
+    VitalityLucTraining,
+    Frenzied                          = 70,
+    AbilityAddDefensePercentage       = 73,
+    AbilityAddRangedDefensePercentage,
+    AbilityAddMagicResistancePercentage = 78,
+    MultiplyQuestExp                  = 87
+};
+```
+
+Shaiya Core adds support for ability `35` (EXP stones), ability `70` (delayed cleanup on stop), and ability `87` (`MultiplyQuestExp`, stored in `CUser::multiplyQuestExpRate`).
+
+### SkillCharmType
+
+```cpp
+enum struct SkillCharmType : int32_t
+{
+    None,
+    BlueDragon,
+    WhiteTiger,
+    RedPhoenix
+};
+```
+
+### SkillStatusType
+
+```cpp
+enum struct SkillStatusType : uint8_t
+{
+    None,
+    Sleep,
+    Unconscious,
+    Silence,
+    Darkness,
+    Pause,
+    Slow,
+    Dying,
+    Death,
+    Poison,
+    Illness,
+    Delusion,
+    Doom,
+    Fear,
+    Dull,
+    Misfortune
+};
+```
+
+### SkillTargetType
+
+```cpp
+enum struct SkillTargetType : uint8_t
+{
+    None,
+    Trap,
+    Caster,
+    Target,
+    AlliesNearCaster,
+    Allies,
+    EnemiesNearCaster,
+    EnemiesNearTarget
+};
+```
+
+### NeedWeapon
+
+A packed bitfield struct indicating which weapon categories a skill requires:
+
+```cpp
+#pragma pack(push, 1)
+struct NeedWeapon
+{
+    bool oneHandedSword;
+    bool twoHandedSword;
+    bool oneHandedAxe;
+    bool twoHandedAxe;
+    bool dualWeapon;
+    bool spear;
+    bool oneHandedBlunt;
+    bool twoHandedBlunt;
+    bool reverseDagger;
+    bool dagger;
+    bool javelin;
+    bool staff;
+    bool bow;
+    bool crossbow;
+    bool knuckles;
+    bool shield;
+};
+#pragma pack(pop)
+```
+
+## UserTypes.h
+
+Three enums cover account authorization level, character motion animations, and shape/transform state.
+
+### AuthStatus
+
+```cpp
+enum struct AuthStatus : uint8_t
+{
+    AdminA = 1, // 16
+    AdminB,     // 32
+    AdminC,     // 48
+    AdminD,     // 64
+    AdminE,     // 80
+    None = 11
+};
+```
+
+### MotionType
+
+`MotionType` covers all character animation states, from movement and combat to emotes. Selected values:
+
+```cpp
+enum struct MotionType : uint8_t
+{
+    None,
+    Walk,
+    Run,
+    WalkBack,
+    WalkLeft,
+    WalkRight,
+    Wade,
+    Swim,
+    Jump,
+    Death,
+    SitDown,
+    StandUp,
+    Break,
+    JumpBack,
+    JumpLeft,
+    JumpRight,
+    Idle1,
+    Idle2,
+    Climb,
+    SelectionScreen,
+    VehicleRunMode,
+    Vehicle,
+    Snowboard,
+    TwoHandedAtkMode,
+    // ... attack, damage, run-mode entries per weapon type ...
+    Beg = 116,
+    Victory,
+    Laugh,
+    Love,
+    Greet,
+    Clap,
+    Defeat,
+    Start,
+    Insult,
+    Provoke
+};
+```
+
+### ShapeType
+
+```cpp
+enum struct ShapeType : uint8_t
+{
+    None,
+    Chicken      = 4,
+    Dog,
+    Horse,
+    Pig,
+    Fox          = 10,
+    Wolf,
+    Knight,
+    Stealth,
+    Disguise     = 100,
+    Degeneration,
+    Transformation
+};
+```
+
+`ShapeType` is stored in `CUser::shapeType` at offset `0x1360` and is included in the EP6.4 user-shape packet sent by `hook::user_shape()`.

@@ -1,0 +1,45 @@
+---
+title: "BattleFieldMoveInfo.ini configuration"
+description: "Configure battlefield level ranges and destination coordinates for each family in BattleFieldMoveInfo.ini, used by the battleground movement system."
+---
+
+BattleFieldMoveInfo.ini maps character level ranges to battlefield destination coordinates. Each entry defines one destination per family — Human, Elf, Death Eater, and Vail — and is used by packet `0x233` to send players to the correct battlefield zone based on their current level.
+
+## Server configuration (BattleFieldMoveInfo.ini)
+
+**Location:** `Data/` folder relative to `ps_game.exe`.
+
+sdev loads `BattleFieldMoveInfo.ini` at startup via `Configuration::LoadBattlefieldMoveData()`. The file maps a level range to one destination coordinate set per family. The four supported families are:
+
+| Family | Description |
+|--------|-------------|
+| Human | Human faction characters |
+| Elf | Elf faction characters |
+| Death Eater | Death Eater faction characters |
+| Vail | Vail faction characters |
+
+Each entry specifies the level range that qualifies a player for that destination, along with the map ID and coordinates the server will move the player to when packet `0x233` is received.
+
+## Client configuration (BattleFieldMoveInfo_Client.ini)
+
+**Location:** client root or `Data/` folder.
+
+The client module reads `BattleFieldMoveInfo_Client.ini` to display the correct battlefield name in the HUD button drawn inside the main stats UI. The client scans both the client root and the `Data/` subfolder, using whichever it finds first.
+
+The HUD button (`main_stats_pvp_button.png`) is positioned differently depending on the active UI mode: when `ADVANCED/UI=1` is set, the button and its click hitbox shift upward to match the `interfep6` main stats frame layout.
+
+<Note>
+  `BattleFieldMoveInfo_Client.ini` must match the server configuration to display correct battlefield names. If the files are out of sync, the button label will not reflect the actual destination the server will send the player to.
+</Note>
+
+## Movement rules
+
+Packet `0x233` is sent by the client when the player confirms the battleground dialog. The server applies the following rules before moving the player:
+
+- **Level range selection:** The server selects the battlefield entry whose level range covers the player's current level. If no matching entry exists, the request is rejected.
+- **Destination by family:** Within the matched level range entry, the server selects the destination coordinates for the player's family (Human, Elf, Death Eater, or Vail).
+- **Rejection conditions:** Dead players, players currently logging out, players already in the target map, and players whose destination zone is not loaded or missing are all rejected without moving.
+- **Cast sequence:** Movement uses the same 5-second cast and update path as town move scrolls. MyShop is ended and any current actions are cancelled before the cast starts.
+- **No item consumed:** Battleground movement does not consume an item. The server clears any saved item-use bag, slot, and index before scheduling the movement, so no item is charged.
+
+The battleground movement path shares infrastructure with town move scrolls (`0x55A`) but bypasses the item validation and gate NPC checks that scrolls require.

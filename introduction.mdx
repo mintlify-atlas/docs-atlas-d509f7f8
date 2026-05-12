@@ -1,0 +1,51 @@
+---
+title: "Shaiya Core: open-source Shaiya private server base"
+description: "Shaiya Core is a C++ patching library for Shaiya private servers. Learn its module structure, design philosophy, beta status, and license terms."
+---
+
+Shaiya Core is a C++ library and patching framework that targets the official Shaiya server binaries (`ps_game.exe`, `ps_dbAgent.exe`, and `ps_login.exe`) and the game client (`Game.exe`). It is the official successor to Shaiya Essentials and is licensed under the BSD 3-Clause License. The project focuses on clean development practices, maintainability, and configurable behavior — letting operators control server behavior through configuration files rather than manual binary edits.
+
+## Repository layout
+
+Each directory in the repository is a self-contained module or shared library. The table below describes what each one contains.
+
+| Directory | Purpose |
+|---|---|
+| `sdev/` | Game-service hooks for `ps_game.exe`: packet handlers, configuration loaders, gameplay fixes, and server-side feature logic. |
+| `sdev-client/` | Client hooks for `Game.exe`: ImGui support, Unicode/chat fixes, UI patches, and quality-of-life client features. |
+| `sdev-login/` | Login-service hooks for `ps_login.exe`. |
+| `sdev-db/` | Database-agent hooks for `ps_dbAgent.exe`. |
+| `shaiya/` | Shared game structures, enums, and packet definitions used across modules. |
+| `util/` | Common memory-patching helpers (`detour`, `read_memory`, `write_memory`). |
+| `external/` | Vendored third-party code used by client features. |
+| `mini-gmp/` | Vendored GMP dependency used by the project. |
+
+## Design philosophy
+
+Shaiya Core is designed so that operators stay in control without needing to touch a disassembler.
+
+- **INI-based configuration over hardcoded edits.** Features like the level cap, enchant cap, and login IP are set through `.ini` files. For example, `ServerConfig.ini` controls `LevelCap` and `EnchantCap`, and `CONFIG.INI` controls client behavior such as the login server address and updater bypass.
+- **No manual assembly edits.** There are no direct binary edits applied to released files. All behavior is defined through C++ source code, hooks, and configuration. Patches are applied at runtime through the `util` helpers.
+- **Features can be disabled or adjusted in code.** Individual hooks can be removed or reconfigured. Many runtime options — cosmetic toggles, performance mode, FPS boost, visual titles — can also be changed through in-game commands without recompiling.
+- **No advanced technical knowledge assumed.** The project is designed to be usable from a standing start, supported by community guides shared through the Discord group.
+
+## Beta status
+
+<Note>
+As of `v0.5.1`, Shaiya Core is still in **beta** and should not be used for a public production server. The project changes frequently: bugs are fixed, new systems are added, and regressions can still appear. Until a stable release is available, production servers should consider staying with **Shaiya Essentials**.
+</Note>
+
+## License
+
+This project's own code is licensed under the **BSD 3-Clause License**. See `LICENSE` in the repository root for the full text. Third-party code included in `external/` and `mini-gmp/` keeps its original license terms. See `THIRD_PARTY_NOTICES.md` for details.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quick start" icon="rocket" href="/quickstart">
+    Build both modules and place your runtime files in four steps.
+  </Card>
+  <Card title="Building" icon="hammer" href="/building">
+    Full MSBuild reference for server, client, login, and database modules.
+  </Card>
+</CardGroup>

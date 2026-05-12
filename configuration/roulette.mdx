@@ -1,0 +1,66 @@
+---
+title: "Roulette.ini configuration and behavior"
+description: "Configure the Shaiya Core roulette system in Roulette.ini with token item ID, reward items, and chance values normalized to a 10000-point table."
+---
+
+Roulette.ini defines the server-backed roulette feature. It specifies the token item required to spin and up to 20 reward entries. Chance values are normalized to a 10,000-point table at startup so individual entries do not need to sum to exactly 10,000, though keeping them consistent is recommended.
+
+## Example
+
+```ini
+[Info]
+TokenItemID=100200
+TokenCount=1
+
+[Reward_1]
+ItemID=100001
+Count=1
+Chance=5000
+
+[Reward_2]
+ItemID=100002
+Count=1
+Chance=3000
+
+[Reward_3]
+ItemID=100003
+Count=1
+Chance=2000
+```
+
+## Configuration options
+
+### [Info] section
+
+| Key | Description |
+|-----|-------------|
+| `TokenItemID` | The item type ID that players consume to spin the roulette. |
+| `TokenCount` | The number of tokens consumed per spin. |
+
+### [Reward_N] sections
+
+Up to 20 reward entries are supported. Sections must be named `[Reward_1]` through `[Reward_20]` with no gaps.
+
+| Key | Description |
+|-----|-------------|
+| `ItemID` | The item type ID awarded when this entry is selected. |
+| `Count` | The number of items to deliver. |
+| `Chance` | The weight of this entry in the normalized 10,000-point table. |
+
+## How it works
+
+sdev loads `Roulette.ini` at startup via `Configuration::LoadRoulette()` and normalizes all `Chance` values to a 10,000-point table. The roulette feature runs entirely server-side with the client ImGui panel acting as the display and input layer.
+
+1. The player opens the ImGui panel with `F8`. The panel sends packet `0x834` to request the reward list from the server. The server responds with the configured token ID, token count, and all reward entries including real item names and icons.
+2. The player clicks spin. The panel sends packet `0x835` to the server.
+3. The server validates the roulette configuration, the player's token count, pending spin state, and inventory capacity. If any check fails, the spin is rejected.
+4. One configured token is consumed from the player's inventory at spin start.
+5. The server stores a pending reward with a 4.5-second completion time.
+6. After 4.5 seconds, the server delivers the selected reward through the normal item creation path.
+7. Pending spin state is cleared after delivery, which prevents a second reward being issued from a single token.
+
+The pending spin guard is the primary protection against duplicate rewards. A player with an active pending spin cannot start another spin until the first is complete.
+
+<Tip>
+  Ensure `Chance` values sum to 10000 or the server will normalize them automatically. Using values that sum to exactly 10000 makes the probability distribution immediately readable from the file.
+</Tip>

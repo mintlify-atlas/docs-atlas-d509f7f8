@@ -1,0 +1,40 @@
+---
+title: "Database agent module (sdev-db) reference"
+description: "sdev-db patches ps_dbAgent.exe to support the EP6.4 character list packet with equipment data and fix an item mall purchase duplication bug."
+---
+
+`sdev-db` patches `ps_dbAgent.exe`, the database agent service that sits between the game server and the SQL database. It adds EP6.4 character list equipment data support, a name availability packet handler, and corrects a binary-level item mall purchase duplication bug present in the stock `ps_dbAgent.exe`.
+
+## Environment
+
+- Windows 10 or newer
+- Visual Studio 2022, C++23, x86 build target
+- [Microsoft Visual C++ Redistributable (x86)](https://aka.ms/vs/17/release/vc_redist.x86.exe)
+
+## What it patches
+
+### Character list packet (equipment)
+
+Adds support for the EP6.4 character list packet with full equipment data. When the game server requests the character list for a client connecting with an EP6.4-compatible `Game.exe`, `sdev-db` populates the equipment fields in the response, enabling the character selection screen to display equipped items.
+
+### Name availability packet
+
+Adds a handler for the character name availability check packet. This packet is required by the `sdev-client` name gate bypass, which removes local name format validation and delegates real name availability checking to the server/dbAgent side.
+
+### Item mall duplication fix
+
+The stock `ps_dbAgent.exe` contains a one-byte binary error that causes item mall purchases to be duplicated. The incorrect instruction sets a flag to `1` (purchase pending), but the value is never cleared, so a second delivery fires on reconnection.
+
+```asm
+; Bug — flag is incorrectly set to 1
+00407942  mov dword ptr [ebx+8],1
+
+; Correct original code — flag should be 0
+00407942  mov dword ptr [ebx+8],0
+```
+
+`sdev-db` restores the correct `0` value at that address on load, preventing duplicate item delivery without requiring a patched binary to be distributed separately.
+
+## Configuration
+
+No additional configuration files are required. All patches are applied automatically when the DLL is loaded by `ps_dbAgent.exe`.

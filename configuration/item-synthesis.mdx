@@ -1,0 +1,72 @@
+---
+title: "ChaoticSquare.ini item synthesis configuration"
+description: "Define item synthesis and chaotic square recipes in ChaoticSquare.ini with material types, counts, success rates, and output items."
+---
+
+ChaoticSquare.ini defines item synthesis recipes and chaotic square result tables loaded by sdev at startup via `Configuration::LoadItemSynthesis()`. Each entry specifies the output item, the required materials, and the success rate. When a player uses a synthesis item effect, the server matches the placed materials against the configured recipes and runs the result through the success rate check before delivering the output item.
+
+## Example
+
+```ini
+[ChaoticSquare_1]
+ItemID=102073
+SuccessRate=80
+MaterialType=30,30,30,30
+MaterialTypeID=5,5,5,5
+MaterialCount=1,1,1,1
+NewItemType=30
+NewItemTypeID=6
+NewItemCount=1
+```
+
+## Configuration options
+
+Each recipe is defined in a numbered `[ChaoticSquare_N]` section. Sections must be sequential starting from `[ChaoticSquare_1]` with no gaps.
+
+| Key | Description |
+|-----|-------------|
+| `ItemID` | The item type ID of the synthesis catalyst or recipe item placed in the synthesis window. |
+| `SuccessRate` | Integer success percentage from `0` to `100`. A roll above this value results in failure. |
+| `MaterialType` | Comma-separated list of item type values for each required material slot. |
+| `MaterialTypeID` | Comma-separated list of item type ID values for each required material slot. |
+| `MaterialCount` | Comma-separated list of required stack counts per material slot. |
+| `NewItemType` | Item type of the output item delivered on success. |
+| `NewItemTypeID` | Item type ID of the output item delivered on success. |
+| `NewItemCount` | Stack count of the output item delivered on success. |
+
+The `MaterialType`, `MaterialTypeID`, and `MaterialCount` lists must have the same number of comma-separated entries. Each position corresponds to one material slot matched against the player's synthesis window.
+
+<Note>
+  Entries must be sequential starting from `[ChaoticSquare_1]` with no gaps. The loader stops at the first missing section number, so a gap will cause all entries after it to be ignored.
+</Note>
+
+## RewardItem.ini
+
+RewardItem.ini configures the timed account reward event that runs alongside the synthesis system. It is loaded at startup via `Configuration::LoadRewardItemEvent()` and checked every 3 seconds from `CWorldThread::Update`. Progress is tracked per account by user ID, so each account receives rewards independently.
+
+### Example
+
+```ini
+[RewardItem_1]
+Delay=5
+Type=100
+TypeID=1
+Count=1
+
+[RewardItem_2]
+Delay=10
+Type=100
+TypeID=2
+Count=1
+```
+
+### Fields
+
+| Key | Description |
+|-----|-------------|
+| `Delay` | Time in minutes the player must be logged in before this reward is delivered. |
+| `Type` | Item type of the reward item. |
+| `TypeID` | Item type ID of the reward item. |
+| `Count` | Stack count of the reward item. |
+
+Packets `0x407` and `0x1F00` handle reward availability checks and result delivery respectively. The event check runs every 3 seconds from `CWorldThread::Update`; rewards are only delivered when the player has been online for at least the configured `Delay` minutes and has not already received the reward in the current session.

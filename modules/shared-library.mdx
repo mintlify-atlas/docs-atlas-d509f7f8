@@ -1,0 +1,73 @@
+---
+title: "Shared library (shaiya) types and packets"
+description: "The shaiya static library contains common game structures, enums, and packet definitions shared across all Shaiya Core patch modules."
+---
+
+The `shaiya` library is a shared static dependency used by `sdev`, `sdev-client`, `sdev-login`, and `sdev-db`. It provides common type definitions, enums, and packet structures that the other modules depend on at compile time. It does not install hooks or patches itself; it is a pure header and data-type library.
+
+## Environment
+
+- Windows 10 or newer
+- Visual Studio 2022, C++23, x86 build target
+- [Microsoft Visual C++ Redistributable (x86)](https://aka.ms/vs/17/release/vc_redist.x86.exe)
+
+## DateTime type
+
+The `DateTime` type is an encoded date/time value stored as an unsigned 32-bit integer (`uint32_t`). It covers the range from `2000-01-01 00:00:00` to `2063-12-31 23:59:59`.
+
+```
+2000-01-01 00:00:00  →  4325376
+2063-12-31 23:59:59  →  4282351355
+```
+
+This encoding is consistent with the format used in the Eden reference implementation and is shared across packet structures that carry timestamps such as character deletion times and item expiry.
+
+## Common types
+
+The following types are defined under `shaiya/include/common/`:
+
+| Header | Description |
+|---|---|
+| `Attribute.h` | Item attribute enumeration. |
+| `Bag.h` | Inventory bag index type. |
+| `Country.h` | Country/faction identifier. |
+| `CraftName.h` | Craft name (item label) structure. |
+| `DateTime.h` | Encoded 32-bit date/time type (see above). |
+| `Family.h` | Family (race group) identifier — Human/Elf vs. Death Eater/Vail. |
+| `Gems.h` | Gem slot array structure used in item definitions. |
+| `Grow.h` | Character growth mode enumeration (Normal, Hard, Ultimate). |
+| `ItemEffect.h` | Item effect ID type. |
+| `ItemList.h` | EP6.4 item list count constants. |
+| `ItemSlot.h` | Equipment slot enumeration including EP6.4 slots (vehicle, pet, costume, wings). |
+| `ItemType.h` | Item type enumeration. |
+| `Job.h` | Character class/job identifier. |
+| `MakeType.h` | Item make type enumeration. |
+| `NpcTypes.h` | NPC type identifier enumeration. |
+| `PartyTypes.h` | Party type constants. |
+| `Sex.h` | Character sex enumeration. |
+| `SkillTypes.h` | Skill type and ability type enumerations. |
+| `UserTypes.h` | User/character state type definitions. |
+
+## Packet definitions
+
+Packet structures are organized under `shaiya/include/network/` by service.
+
+### dbAgent
+
+Headers under `network/dbAgent/incoming/` and `network/dbAgent/outgoing/` define the packets exchanged between `ps_game.exe` and `ps_dbAgent.exe`. The `0x04xx` group covers character and item data flows including the EP6.4 character list request and response. The `0x06xx`, `0x07xx`, and `0x0Exx` groups cover additional query and result packet families. `DBQuickUnit.h` defines the quick-slot unit structure used in database storage.
+
+### game
+
+Headers under `network/game/incoming/` and `network/game/outgoing/` define the full client–server protocol. Incoming groups span packet families from `0x01xx` through `0xFA00`, covering character operations, item actions, exchange, shop, quest, party, guild, skill, and EP6.4-specific flows. Outgoing groups cover the corresponding server responses and broadcasts. Supporting unit structures — `ItemUnit.h`, `BankUnit.h`, `MyShopUnit.h`, `QuickUnit.h`, `RewardItemUnit.h`, `QuestItemUnit.h`, `PointItemUnit.h`, and others — are defined at the `network/game/` level and shared across incoming and outgoing headers.
+
+### gameLog
+
+Headers under `network/gameLog/` define the structures sent to the game log service. `GameLogMain.h` provides the base log record. Specialized headers cover item composition (`GameLogItemCompose.h`), item drops (`GameLogItemDrop.h`), item retrieval (`GameLogItemGet.h`), item remake (`GameLogItemRemake.h`), and quest completion (`GameLogQuest.h`, `GameLogQuestEnd.h`).
+
+### login
+
+Headers under `network/login/incoming/` and `network/login/outgoing/` define the `0xA1xx` and `0xA2xx` packet families used by `ps_login.exe`. These cover the login handshake, account authentication, and server list responses.
+
+## Reference
+
+Full type and packet field details can be found by reading the individual header files in `shaiya/include/`. The headers are the authoritative source of record for field names, sizes, and ordering.

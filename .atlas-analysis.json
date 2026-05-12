@@ -1,0 +1,130 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "Shaiya Core",
+  "projectDescription": "A C++ patching library and hook framework that modernizes Shaiya private servers by providing configurable server, client, login, and database agent modules built on clean, community-driven development practices.",
+  "theme": "aspen",
+  "primaryColor": "#5c64f4",
+  "lightColor": "#acb4fc",
+  "darkColor": "#ffffff",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "building"
+            ]
+          },
+          {
+            "group": "Modules",
+            "pages": [
+              "modules/game-service",
+              "modules/client",
+              "modules/login",
+              "modules/database-agent",
+              "modules/shared-library",
+              "modules/utilities"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/server-config",
+              "configuration/client-config",
+              "configuration/roulette",
+              "configuration/battlefield",
+              "configuration/item-synthesis"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "features/server-features",
+              "features/client-features",
+              "features/ep64-support"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Reference",
+        "groups": [
+          {
+            "group": "Structures & Types",
+            "pages": [
+              "reference/cuser",
+              "reference/common-types",
+              "reference/item-effects"
+            ]
+          },
+          {
+            "group": "Packets",
+            "pages": [
+              "reference/packets-server",
+              "reference/packets-client"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Modular hook system targeting ps_game.exe, ps_dbAgent.exe, ps_login.exe, and Game.exe",
+    "EP6.4 equipment slots, shape packets, and protocol compatibility",
+    "Raid 150 — expands party size from 30 to 150 users with matching client UI",
+    "Declarative INI-based configuration for enchant cap, level cap, battlefields, roulette, and item synthesis",
+    "Cross-faction whisper, trade, inspect, and login support",
+    "ImGui roulette panel, Discord RPC, and emoji/GIF chat integration",
+    "Custom item effects: recreation runes, safety charms, ability transfer, chaotic square synthesis",
+    "Item set synergy system with server-side SetItem.SData loading",
+    "Extended client commands: /font, /wings, /pets, /costumes, /effects, /fpsboost, /titles, /colour",
+    "Memory patching utilities (detour, read_memory, write_memory) used across all modules"
+  ],
+  "publicApiSurface": [
+    "util::detour(void* addr, void* dest, size_t size)",
+    "util::read_memory(void* addr, void* dest, size_t size)",
+    "util::write_memory(void* addr, const void* src, size_t size)",
+    "Configuration::Init()",
+    "Configuration::LoadServerConfig()",
+    "Configuration::LoadBattlefieldMoveData()",
+    "Configuration::LoadItemSetData()",
+    "Configuration::LoadItemSynthesis()",
+    "Configuration::LoadRewardItemEvent()",
+    "Configuration::LoadRoulette()",
+    "hook::item_effect()",
+    "hook::utilities()",
+    "hook::packet_character()",
+    "hook::packet_exchange()",
+    "hook::packet_gem()",
+    "hook::packet_main_interface()",
+    "hook::packet_market()",
+    "hook::packet_myshop()",
+    "hook::packet_party()",
+    "hook::packet_pc()",
+    "hook::packet_quest()",
+    "hook::raid_150()",
+    "hook::packet_reward_item()",
+    "hook::packet_shop()",
+    "hook::user_equipment()",
+    "hook::user_shape()",
+    "hook::user_skill()",
+    "hook::user_status()",
+    "hook::world_thread()",
+    "CUser::ItemCreate(CUser* user, ItemInfo* info, int count)",
+    "CUser::ItemDelete(CUser* user, int type, int typeId)",
+    "CUser::SendShape(CUser* user)",
+    "CUser::SetAttack(CUser* user)",
+    "struct CUser",
+    "struct CItem",
+    "struct CParty",
+    "struct ItemInfo",
+    "struct SkillInfo",
+    "enum UserMovePosType",
+    "enum UserStatus",
+    "enum UserAttackType"
+  ]
+}

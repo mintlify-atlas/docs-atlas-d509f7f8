@@ -1,0 +1,67 @@
+---
+title: "Utilities library (util) memory patching API"
+description: "The util library provides memory patching helpers used by all Shaiya Core modules: detour for code redirection, and read/write memory wrappers."
+---
+
+`util` is a shared utility library depended on by every other Shaiya Core module — `sdev`, `sdev-client`, `sdev-login`, and `sdev-db`. It provides low-level memory patching helpers that form the foundation of the hook system: a detour installer that writes relative `JMP` instructions, `ReadProcessMemory` and `WriteProcessMemory` wrappers that temporarily elevate page protection, and a `memset` variant for zeroing or filling memory regions. All functions operate on the current process.
+
+## API reference
+
+### `util::detour`
+
+```cpp
+int util::detour(void* addr, void* dest, size_t size);
+```
+
+Redirects execution at `addr` to `dest` by writing a relative `JMP` (opcode `0xE9`) at `addr`. Any bytes between the 5-byte instruction and `size` are filled with `NOP` (`0x90`). The instruction cache is flushed after the write. Returns non-zero on success.
+
+`size` must be at least 5 bytes. If the target binary has alignment padding or a multi-byte instruction that must be consumed whole, pass the full instruction size as `size` (commonly 5 or 6).
+
+---
+
+### `util::read_memory` (pointer variant)
+
+```cpp
+int util::read_memory(void* addr, void* dest, size_t size);
+```
+
+Reads `size` bytes from `addr` into `dest` using `ReadProcessMemory`. Temporarily sets the page at `addr` to `PAGE_EXECUTE_READWRITE`, performs the read, then restores the original protection. Returns non-zero on success.
+
+---
+
+### `util::write_memory` (pointer variant)
+
+```cpp
+int util::write_memory(void* addr, const void* src, size_t size);
+```
+
+Writes `size` bytes from `src` to `addr` using `WriteProcessMemory`. Temporarily sets the page at `addr` to `PAGE_EXECUTE_READWRITE`, performs the write, flushes the instruction cache, then restores the original protection. Returns non-zero on success.
+
+---
+
+### `util::write_memory` (fill variant)
+
+```cpp
+int util::write_memory(void* addr, int value, size_t size);
+```
+
+Fills `size` bytes at `addr` with `value` using `memset`. Temporarily elevates page protection before the fill and restores it afterward. Returns non-zero on success. This overload is used when zeroing a region or filling NOP bytes without a source buffer.
+
+## Usage example
+
+The following excerpt from `sdev/src/main.cpp` shows both `util::detour` and `util::write_memory` in practice:
+
+```cpp
+// Redirect execution at address 0x455165 to our hook function with a 6-byte detour
+util::detour((void*)0x455165, naked_0x455165, 6);
+
+// Patch the CUser allocation size from 0x62A0 to 0x62F4
+int size = 0x62F4;
+util::write_memory((void*)0x411F74, &size, 4);
+```
+
+`detour` writes a 5-byte `JMP` at `0x455165` followed by one `NOP`, redirecting `CUser::CUser` to the custom hook. `write_memory` then patches the 4-byte allocation size constant at `0x411F74` in `SSyncHeap<CUser>::Alloc` so the expanded `CUser` structure fits in the heap allocation.
+
+## INI utilities
+
+The `util/ini/` subfolder contains `ini.h` and `ini.cpp`, a lightweight INI file parser used by `sdev`'s `Configuration` class to read `ServerConfig.ini`, `BattleFieldMoveInfo.ini`, `ChaoticSquare.ini`, `RewardItem.ini`, and `Roulette.ini`. It is not a general-purpose INI library exposed as a public API; it is a private implementation detail consumed through the `Configuration` interface.

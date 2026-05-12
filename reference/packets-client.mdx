@@ -1,0 +1,47 @@
+---
+title: "Client packet opcodes reference"
+description: "Reference for client-side packet opcodes handled or sent by sdev-client in Shaiya Core: shape, equipment, roulette, battleground, and more."
+---
+
+`sdev-client` sends and handles a set of packet opcodes to interact with the server-side `sdev` module. These cover EP6.4 shape data, roulette, battleground movement, and various fixes to existing handlers. `sdev-client` is the `ps_game.exe` client patch module; it adds the ImGui roulette panel, the battleground button, and the five-page raid UI, and it patches several stock client packet handlers for correctness.
+
+## Packets sent by sdev-client to sdev
+
+These packets originate on the client and are received by `sdev` on the server.
+
+| Opcode | Trigger | Description |
+|--------|---------|-------------|
+| `0x233` | Battleground button (after native confirmation dialog) | Battleground move request; `sdev` validates level, family, and status before initiating the 5-second cast |
+| `0x834` | F8 ImGui roulette panel on open | Roulette reward list request; `sdev` responds with `GameRouletteListOutgoing` carrying the token item and full reward table |
+| `0x835` | F8 ImGui roulette panel on spin | Roulette spin request; `sdev` validates the token count and pending spin state, consumes one token, and begins the 4.5-second spin timer |
+
+## Packet handlers fixed or extended by sdev-client
+
+The following opcodes are received by the client from `sdev`. `sdev-client` patches or extends the stock handler for each.
+
+| Opcode | Structure | Description |
+|--------|-----------|-------------|
+| `0x303` | `GameGetInfoUserShapeOutgoing_EP6_4` | Disguise removal fix: stabilizes the handler path so the EP6.4 shape packet does not corrupt the client state on disguise cancellation |
+| `0x226` | `GameUserBodyChangeOutgoing` | Appearance/sex change fix: stabilizes the handler path for body-change responses |
+| `0x229` | `GameRevengeMarkOutgoing` | System message 509 support: ensures message number 509 is handled by the client system-message path |
+| `0x502` | `GameCharAttackUserIncoming` | Javelin attack fix: adjusts handler stack and argument layout so the javelin attack path resolves correctly |
+| `0x116` | `GameWeaponStepOutgoing` | Weapon step display: patches the client weapon-step display path so server-sent step values render correctly |
+| `0x307` | `GameGetInfoUserItemsOutgoing` | Inspect: receives up to 17 EP6.4 equipment entries; the stock EP5 handler only processes 8 entries |
+
+## EP6.4 packet fields
+
+`sdev-client` adds support for EP6.4 vehicle-related fields in shape and list packets. This covers:
+
+- **Vehicle equipment slot** in the 17-slot equipment array sent by `0x307` and `0x303`
+- **`vehicleShapeType` and `vehicleShapeTypeAdd`** in the user-shape packet, enabling vehicle display in the world
+- **Extended clone-user allocation**, so vehicle shape data is included when other players receive a user's shape
+
+These fields are absent in the EP5 packet layout. `sdev-client` patches the client-side read path so the extended packet is consumed without errors.
+
+## Recreation runes (client-side)
+
+Effects 220–240 (HP, MP, SP random/perfect recreation and removal runes) must be placed in the blacksmith NPC recreation window before the server can process them. `sdev-client` patches the client recreation window to accept these effect IDs in the item placement slot.
+
+The server mutation is applied entirely by `sdev`; the client only gates placement in the window. No item data is modified client-side.
+
+For a full description of each effect ID and its server-side behavior, see the [custom item effects reference](/reference/item-effects).
